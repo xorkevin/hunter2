@@ -1,13 +1,16 @@
-.PHONY: test fmt vet prepare
+.PHONY: test coverage cover bench fmt vet prepare
 
+TEST_ARGS=
 COVERAGE=cover.out
 COVERAGE_ARGS=-covermode count -coverprofile $(COVERAGE)
 
 test:
-	go test -v -cover $(COVERAGE_ARGS) ./...
+	go test $(TEST_ARGS) -cover $(COVERAGE_ARGS) ./...
 
 coverage:
 	go tool cover -html $(COVERAGE)
+
+cover: test coverage
 
 BENCHMARK_ARGS=-benchtime 5s -benchmem
 

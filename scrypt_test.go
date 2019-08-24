@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func Test_ScryptHasher(t *testing.T) {
+func TestScryptHasher(t *testing.T) {
 	assert := assert.New(t)
 	key := "password"
 
@@ -23,7 +23,7 @@ func Test_ScryptHasher(t *testing.T) {
 	assert.False(ok, "incorrect key should fail")
 	assert.Nil(err, "incorrect key should not error")
 
-	// invalid hash
+	// invalid hash format
 	ok, err = hasher.Verify(key, "")
 	assert.False(ok, "blank hash should fail")
 	assert.Error(err, "blank hash should fail")
