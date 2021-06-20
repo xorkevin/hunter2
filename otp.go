@@ -5,8 +5,6 @@ import (
 	"crypto/hmac"
 	"encoding/base64"
 	"encoding/binary"
-	"fmt"
-	"math"
 )
 
 // HOTP implements RFC4226
@@ -23,7 +21,7 @@ func HOTP(secret string, counter uint64, alg crypto.Hash, length int) (string, e
 	}
 	sum := h.Sum(nil)
 	bin := truncate(sum)
-	return fmt.Sprintf("%0*d", length, bin%uint64(math.Pow10(length))), nil
+	return formatNumToString(bin, length), nil
 }
 
 func truncate(sum []byte) uint64 {
@@ -32,4 +30,13 @@ func truncate(sum []byte) uint64 {
 		((uint64(sum[offset+1] & 0xff)) << 16) |
 		((uint64(sum[offset+2] & 0xff)) << 8) |
 		(uint64(sum[offset+3]) & 0xff)
+}
+
+func formatNumToString(num uint64, length int) string {
+	k := make([]byte, length)
+	for i := length - 1; i >= 0; i-- {
+		k[i] = byte(num%10 + '0')
+		num /= 10
+	}
+	return string(k)
 }
