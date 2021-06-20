@@ -25,8 +25,8 @@ Count    Hexadecimal HMAC-SHA-1(secret, count)
 8        1b3c89f65e6c9e883012052823443f048b4332db
 9        1637409809a679dc698207310c8c7fc07290d9e5
 
-Table 2 details for each count the truncated values (both in
-hexadecimal and decimal) and then the HOTP value.
+Table 2 details for each count the truncated values (both in hexadecimal and
+decimal) and then the HOTP value.
 
 Truncated
 
@@ -93,11 +93,15 @@ func TestHOTP(t *testing.T) {
 			Code:    "520489",
 		},
 	} {
+		tc := tc
 		t.Run(strconv.FormatUint(tc.Counter, 10), func(t *testing.T) {
 			t.Parallel()
 
 			assert := require.New(t)
-			code, err := HOTP(secret, tc.Counter, crypto.SHA1, 6)
+			code, err := HOTP(secret, tc.Counter, HOTPOpts{
+				Alg: crypto.SHA1,
+				Len: 6,
+			})
 			assert.Nil(err)
 			assert.Equal(tc.Code, code)
 		})
@@ -123,11 +127,202 @@ func TestFormatNumToString(t *testing.T) {
 			Str: "000123",
 		},
 	} {
+		tc := tc
 		t.Run(strconv.FormatUint(tc.Num, 10)+" len "+strconv.Itoa(tc.Len), func(t *testing.T) {
 			t.Parallel()
 
 			assert := require.New(t)
 			assert.Equal(tc.Str, formatNumToString(tc.Num, tc.Len))
+		})
+	}
+}
+
+/*
+The test token shared secret uses the ASCII string value
+"12345678901234567890".  With Time Step X = 30, and the Unix epoch as the
+initial value to count time steps, where T0 = 0, the TOTP algorithm will
+display the following values for specified modes and timestamps.
+
++-------------+--------------+------------------+----------+--------+
+|  Time (sec) |   UTC Time   | Value of T (hex) |   TOTP   |  Mode  |
++-------------+--------------+------------------+----------+--------+
+|      59     |  1970-01-01  | 0000000000000001 | 94287082 |  SHA1  |
+|             |   00:00:59   |                  |          |        |
+|      59     |  1970-01-01  | 0000000000000001 | 46119246 | SHA256 |
+|             |   00:00:59   |                  |          |        |
+|      59     |  1970-01-01  | 0000000000000001 | 90693936 | SHA512 |
+|             |   00:00:59   |                  |          |        |
+|  1111111109 |  2005-03-18  | 00000000023523EC | 07081804 |  SHA1  |
+|             |   01:58:29   |                  |          |        |
+|  1111111109 |  2005-03-18  | 00000000023523EC | 68084774 | SHA256 |
+|             |   01:58:29   |                  |          |        |
+|  1111111109 |  2005-03-18  | 00000000023523EC | 25091201 | SHA512 |
+|             |   01:58:29   |                  |          |        |
+|  1111111111 |  2005-03-18  | 00000000023523ED | 14050471 |  SHA1  |
+|             |   01:58:31   |                  |          |        |
+|  1111111111 |  2005-03-18  | 00000000023523ED | 67062674 | SHA256 |
+|             |   01:58:31   |                  |          |        |
+|  1111111111 |  2005-03-18  | 00000000023523ED | 99943326 | SHA512 |
+|             |   01:58:31   |                  |          |        |
+|  1234567890 |  2009-02-13  | 000000000273EF07 | 89005924 |  SHA1  |
+|             |   23:31:30   |                  |          |        |
+|  1234567890 |  2009-02-13  | 000000000273EF07 | 91819424 | SHA256 |
+|             |   23:31:30   |                  |          |        |
+|  1234567890 |  2009-02-13  | 000000000273EF07 | 93441116 | SHA512 |
+|             |   23:31:30   |                  |          |        |
+|  2000000000 |  2033-05-18  | 0000000003F940AA | 69279037 |  SHA1  |
+|             |   03:33:20   |                  |          |        |
+|  2000000000 |  2033-05-18  | 0000000003F940AA | 90698825 | SHA256 |
+|             |   03:33:20   |                  |          |        |
+|  2000000000 |  2033-05-18  | 0000000003F940AA | 38618901 | SHA512 |
+|             |   03:33:20   |                  |          |        |
+| 20000000000 |  2603-10-11  | 0000000027BC86AA | 65353130 |  SHA1  |
+|             |   11:33:20   |                  |          |        |
+| 20000000000 |  2603-10-11  | 0000000027BC86AA | 77737706 | SHA256 |
+|             |   11:33:20   |                  |          |        |
+| 20000000000 |  2603-10-11  | 0000000027BC86AA | 47863826 | SHA512 |
+|             |   11:33:20   |                  |          |        |
++-------------+--------------+------------------+----------+--------+
+
+Table 1: TOTP Table
+*/
+
+func TestTOTP(t *testing.T) {
+	t.Parallel()
+
+	sha1secret := "MTIzNDU2Nzg5MDEyMzQ1Njc4OTA"
+	sha256secret := "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI"
+	sha512secret := "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNA"
+
+	for _, tc := range []struct {
+		Secret string
+		T      uint64
+		Alg    crypto.Hash
+		Code   string
+	}{
+		{
+			Secret: sha1secret,
+			T:      59,
+			Alg:    crypto.SHA1,
+			Code:   "94287082",
+		},
+		{
+			Secret: sha256secret,
+			T:      59,
+			Alg:    crypto.SHA256,
+			Code:   "46119246",
+		},
+		{
+			Secret: sha512secret,
+			T:      59,
+			Alg:    crypto.SHA512,
+			Code:   "90693936",
+		},
+		{
+			Secret: sha1secret,
+			T:      1111111109,
+			Alg:    crypto.SHA1,
+			Code:   "07081804",
+		},
+		{
+			Secret: sha256secret,
+			T:      1111111109,
+			Alg:    crypto.SHA256,
+			Code:   "68084774",
+		},
+		{
+			Secret: sha512secret,
+			T:      1111111109,
+			Alg:    crypto.SHA512,
+			Code:   "25091201",
+		},
+		{
+			Secret: sha1secret,
+			T:      1111111111,
+			Alg:    crypto.SHA1,
+			Code:   "14050471",
+		},
+		{
+			Secret: sha256secret,
+			T:      1111111111,
+			Alg:    crypto.SHA256,
+			Code:   "67062674",
+		},
+		{
+			Secret: sha512secret,
+			T:      1111111111,
+			Alg:    crypto.SHA512,
+			Code:   "99943326",
+		},
+		{
+			Secret: sha1secret,
+			T:      1234567890,
+			Alg:    crypto.SHA1,
+			Code:   "89005924",
+		},
+		{
+			Secret: sha256secret,
+			T:      1234567890,
+			Alg:    crypto.SHA256,
+			Code:   "91819424",
+		},
+		{
+			Secret: sha512secret,
+			T:      1234567890,
+			Alg:    crypto.SHA512,
+			Code:   "93441116",
+		},
+		{
+			Secret: sha1secret,
+			T:      2000000000,
+			Alg:    crypto.SHA1,
+			Code:   "69279037",
+		},
+		{
+			Secret: sha256secret,
+			T:      2000000000,
+			Alg:    crypto.SHA256,
+			Code:   "90698825",
+		},
+		{
+			Secret: sha512secret,
+			T:      2000000000,
+			Alg:    crypto.SHA512,
+			Code:   "38618901",
+		},
+		{
+			Secret: sha1secret,
+			T:      20000000000,
+			Alg:    crypto.SHA1,
+			Code:   "65353130",
+		},
+		{
+			Secret: sha256secret,
+			T:      20000000000,
+			Alg:    crypto.SHA256,
+			Code:   "77737706",
+		},
+		{
+			Secret: sha512secret,
+			T:      20000000000,
+			Alg:    crypto.SHA512,
+			Code:   "47863826",
+		},
+	} {
+		tc := tc
+		t.Run(strconv.FormatUint(tc.T, 10)+" "+tc.Alg.String(), func(t *testing.T) {
+			t.Parallel()
+
+			assert := require.New(t)
+			code, err := TOTP(tc.Secret, tc.T, TOTPOpts{
+				HOTPOpts: HOTPOpts{
+					Alg: tc.Alg,
+					Len: 8,
+				},
+				Period: 30,
+			})
+			assert.Nil(err)
+			assert.Equal(tc.Code, code)
 		})
 	}
 }
