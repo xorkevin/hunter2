@@ -1,13 +1,14 @@
 package hunter2
 
 import (
-	"bytes"
+	"crypto/hmac"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
-	"golang.org/x/crypto/scrypt"
 	"strconv"
 	"strings"
+
+	"golang.org/x/crypto/scrypt"
 )
 
 type (
@@ -134,5 +135,5 @@ func (h *ScryptHasher) Verify(key string, hash string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return bytes.Equal(res, hashval), nil
+	return hmac.Equal(res, hashval), nil
 }

@@ -1,11 +1,12 @@
 package hunter2
 
 import (
-	"bytes"
+	"crypto/hmac"
 	"encoding/base64"
 	"errors"
-	"golang.org/x/crypto/blake2b"
 	"strings"
+
+	"golang.org/x/crypto/blake2b"
 )
 
 type (
@@ -51,5 +52,5 @@ func (h *Blake2bHasher) Verify(key string, hash string) (bool, error) {
 		return false, err
 	}
 	res := h.exec(key)
-	return bytes.Equal(res, hashval), nil
+	return hmac.Equal(res, hashval), nil
 }
