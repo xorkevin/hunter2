@@ -13,17 +13,20 @@ type (
 		Verify(key string, hash string) (bool, error)
 	}
 
+	// Verifier verifies hashes
 	Verifier struct {
 		hashers map[string]Hasher
 	}
 )
 
+// NewVerifier creates a new verifier
 func NewVerifier() *Verifier {
 	return &Verifier{
 		hashers: map[string]Hasher{},
 	}
 }
 
+// RegisterHash registers a Hasher
 func (v *Verifier) RegisterHash(hasher Hasher) {
 	v.hashers[hasher.ID()] = hasher
 }

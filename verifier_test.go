@@ -1,12 +1,13 @@
 package hunter2
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestVerifier(t *testing.T) {
-	assert := assert.New(t)
+	assert := require.New(t)
 	key := "password"
 
 	{
@@ -17,11 +18,11 @@ func TestVerifier(t *testing.T) {
 
 		// success case
 		hash, err := hasher.Hash(key)
-		assert.Nil(err, "hash should be successful")
+		assert.NoError(err, "hash should be successful")
 
 		ok, err := v.Verify(key, hash)
 		assert.True(ok, "key should be correct")
-		assert.Nil(err, "key should be correct")
+		assert.NoError(err, "key should be correct")
 
 		// invalid hashid
 		ok, err = v.Verify(key, "$bogusid")
@@ -36,11 +37,11 @@ func TestVerifier(t *testing.T) {
 
 		// success case
 		hash, err := hasher.Hash(key)
-		assert.Nil(err, "hash should be successful")
+		assert.NoError(err, "hash should be successful")
 
 		ok, err := v.Verify(key, hash)
 		assert.True(ok, "key should be correct")
-		assert.Nil(err, "key should be correct")
+		assert.NoError(err, "key should be correct")
 
 		// invalid hashid
 		ok, err = v.Verify(key, "$bogusid")

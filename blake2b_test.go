@@ -1,27 +1,28 @@
 package hunter2
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestBlake2bHasher(t *testing.T) {
-	assert := assert.New(t)
+	assert := require.New(t)
 	key := "password"
 
 	hasher := NewBlake2bHasher()
 
 	// success case
 	hash, err := hasher.Hash(key)
-	assert.Nil(err, "hash should be successful")
+	assert.NoError(err, "hash should be successful")
 	ok, err := hasher.Verify(key, hash)
 	assert.True(ok, "key should be correct")
-	assert.Nil(err, "key should be correct")
+	assert.NoError(err, "key should be correct")
 
 	// invalid key
 	ok, err = hasher.Verify("notpass", hash)
 	assert.False(ok, "incorrect key should fail")
-	assert.Nil(err, "incorrect key should not error")
+	assert.NoError(err, "incorrect key should not error")
 
 	// invalid hash format
 	ok, err = hasher.Verify(key, "")
