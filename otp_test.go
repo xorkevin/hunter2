@@ -101,10 +101,7 @@ func TestHOTP(t *testing.T) {
 			t.Parallel()
 
 			assert := require.New(t)
-			code, err := HOTP(secret, tc.Counter, HOTPOpts{
-				Alg: crypto.SHA1,
-				Len: 6,
-			})
+			code, err := HOTP(secret, tc.Counter, crypto.SHA1.New, 6)
 			assert.NoError(err)
 			assert.Equal(tc.Code, code)
 		})
@@ -320,10 +317,8 @@ func TestTOTP(t *testing.T) {
 			secret, err := base64.RawURLEncoding.DecodeString(tc.Secret)
 			assert.NoError(err)
 			code, err := TOTP(secret, tc.T, TOTPOpts{
-				HOTPOpts: HOTPOpts{
-					Alg: tc.Alg,
-					Len: 8,
-				},
+				Alg:    tc.Alg.New,
+				Digits: 8,
 				Period: 30,
 			})
 			assert.NoError(err)
@@ -332,20 +327,18 @@ func TestTOTP(t *testing.T) {
 	}
 }
 
-func TestOTPParams(t *testing.T) {
+func TestTOTPConfig_String(t *testing.T) {
 	t.Parallel()
 
 	for _, tc := range []struct {
-		Secret string
-		Opts   OTPURIOpts
+		Config TOTPURI
 		Params string
 		URI    string
 	}{
 		{
-			Secret: "hello_world",
-			Opts: OTPURIOpts{
-				OTPOpts: OTPOpts{
-					Kind:   OTPKindTOTP,
+			Config: TOTPURI{
+				TOTPConfig: TOTPConfig{
+					Secret: []byte("hello_world"),
 					Alg:    OTPAlgSHA1,
 					Digits: 6,
 					Period: 30,
@@ -358,10 +351,9 @@ func TestOTPParams(t *testing.T) {
 			URI:    "otpauth://totp/xorkevin%20dev:kevin?algorithm=SHA1&digits=6&issuer=xorkevin+dev&period=30&secret=NBSWY3DPL53W64TMMQ",
 		},
 		{
-			Secret: "lorem ipsum",
-			Opts: OTPURIOpts{
-				OTPOpts: OTPOpts{
-					Kind:   OTPKindTOTP,
+			Config: TOTPURI{
+				TOTPConfig: TOTPConfig{
+					Secret: []byte("lorem ipsum"),
 					Alg:    OTPAlgSHA256,
 					Digits: 8,
 					Period: 15,
@@ -379,23 +371,17 @@ func TestOTPParams(t *testing.T) {
 			t.Parallel()
 
 			assert := require.New(t)
-			assert.Equal(tc.Params, otpParamsString([]byte(tc.Secret), tc.Opts.OTPOpts))
-			assert.Equal(tc.URI, otpURI([]byte(tc.Secret), tc.Opts))
-			opts, secret, err := otpParseOpts(tc.Params)
-			assert.NoError(err)
-			assert.NotNil(opts)
-			assert.Equal(tc.Opts.OTPOpts, *opts)
-			assert.Equal(base64.RawURLEncoding.EncodeToString([]byte(tc.Secret)), secret)
+			assert.Equal(tc.Params, tc.Config.TOTPConfig.String())
+			assert.Equal(tc.URI, tc.Config.String())
 		})
 	}
 }
 
-func TestOTPGenerateSecret(t *testing.T) {
+func TestTOTPGenerateSecret(t *testing.T) {
 	t.Parallel()
 	assert := require.New(t)
-	params, _, err := OTPGenerateSecret(64, OTPURIOpts{
-		OTPOpts: OTPOpts{
-			Kind:   OTPKindTOTP,
+	params, _, err := TOTPGenerateSecret(64, TOTPURI{
+		TOTPConfig: TOTPConfig{
 			Alg:    OTPAlgSHA1,
 			Digits: 6,
 			Period: 30,
@@ -405,13 +391,16 @@ func TestOTPGenerateSecret(t *testing.T) {
 		AccountName: "kevin",
 	})
 	assert.NoError(err)
-	opts, secret, err := otpParseOpts(params)
+
+	config := TOTPConfig{}
+	assert.NoError(config.decodeParams(params))
+	code, err := TOTPNow(config.Secret, TOTPOpts{
+		Alg:    crypto.SHA1.New,
+		Digits: 6,
+		Period: 30,
+	})
 	assert.NoError(err)
-	topts, err := opts.TOTPOpts()
-	assert.NoError(err)
-	code, err := TOTPNow(secret, *topts)
-	assert.NoError(err)
-	ok, err := OTPVerify(params, code)
+	ok, err := TOTPVerify(params, code, DefaultOTPHashes)
 	assert.NoError(err)
 	assert.True(ok)
 }

@@ -11,7 +11,7 @@ func TestVerifier(t *testing.T) {
 	key := "password"
 
 	{
-		hasher := NewScryptHasher(16, 16, NewScryptDefaultConfig())
+		hasher := NewBlake2bHasher()
 
 		v := NewVerifier()
 		v.RegisterHash(hasher)

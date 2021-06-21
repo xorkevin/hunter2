@@ -10,7 +10,7 @@ func TestScryptHasher(t *testing.T) {
 	assert := require.New(t)
 	key := "password"
 
-	hasher := NewScryptHasher(16, 16, NewScryptDefaultConfig())
+	hasher := NewScryptHasher(16, 16, DefaultScryptConfig)
 
 	// success case
 	hash, err := hasher.Hash(key)

@@ -9,38 +9,38 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"hash"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 )
 
-// OTP errors
 var (
-	ErrOTPInvalidOpt     = errors.New("OTP invalid opt")
-	ErrOTPParamInvalid   = errors.New("OTP invalid param")
+	// ErrOTPInvalidOpt is returned when an invalid opt is passed to otp
+	ErrOTPInvalidOpt = errors.New("OTP invalid opt")
+	// ErrOTPOptUnsupported is returned when an otp opt is unsupported
 	ErrOTPOptUnsupported = errors.New("OTP opt unsupported")
+	// ErrOTPParamInvalid is returned when an otp param string is invalid
+	ErrOTPParamInvalid = errors.New("OTP invalid param")
 )
 
 type (
-	// HOTPOpts are opts for HOTP
-	HOTPOpts struct {
-		Alg crypto.Hash
-		Len int
-	}
+	// HashConstructor constructs a new hash
+	HashConstructor = func() hash.Hash
 )
 
 // HOTP implements RFC4226
-func HOTP(secret []byte, counter uint64, opts HOTPOpts) (string, error) {
+func HOTP(secret []byte, counter uint64, alg HashConstructor, digits int) (string, error) {
 	text := make([]byte, 8)
 	binary.BigEndian.PutUint64(text, counter)
-	h := hmac.New(opts.Alg.New, secret)
+	h := hmac.New(alg, secret)
 	if _, err := h.Write(text); err != nil {
 		return "", fmt.Errorf("Failed hash counter: %w", err)
 	}
 	sum := h.Sum(nil)
 	bin := otpTruncate(sum)
-	return formatNumToString(bin, opts.Len), nil
+	return formatNumToString(bin, digits), nil
 }
 
 func otpTruncate(sum []byte) uint64 {
@@ -63,7 +63,8 @@ func formatNumToString(num uint64, length int) string {
 type (
 	// TOTPOpts are opts for TOTP
 	TOTPOpts struct {
-		HOTPOpts
+		Alg    HashConstructor
+		Digits int
 		Period uint64
 	}
 )
@@ -73,16 +74,100 @@ func TOTP(secret []byte, t uint64, opts TOTPOpts) (string, error) {
 	if opts.Period == 0 {
 		return "", fmt.Errorf("%w: invalid period", ErrOTPInvalidOpt)
 	}
-	return HOTP(secret, t/opts.Period, opts.HOTPOpts)
+	return HOTP(secret, t/opts.Period, opts.Alg, opts.Digits)
 }
 
 // TOTPNow returns the TOTP now
-func TOTPNow(secret string, opts TOTPOpts) (string, error) {
-	key, err := base64.RawURLEncoding.DecodeString(secret)
-	if err != nil {
-		return "", fmt.Errorf("Invalid otp secret: %w", err)
+func TOTPNow(secret []byte, opts TOTPOpts) (string, error) {
+	return TOTP(secret, uint64(time.Now().Round(0).Unix()), opts)
+}
+
+type (
+	// TOTPConfig are opts for TOTP
+	TOTPConfig struct {
+		Secret []byte
+		Alg    string
+		Digits int
+		Period uint64
+		Leeway uint64
 	}
-	return TOTP(key, uint64(time.Now().Round(0).Unix()), opts)
+
+	// TOTPURI are opts for OTP apps
+	TOTPURI struct {
+		TOTPConfig
+		Issuer      string
+		AccountName string
+	}
+)
+
+func (c TOTPConfig) String() string {
+	b := strings.Builder{}
+	b.WriteString("$totp$")
+	b.WriteString(c.Alg)
+	b.WriteString(",")
+	b.WriteString(strconv.Itoa(c.Digits))
+	b.WriteString(",")
+	b.WriteString(strconv.FormatUint(c.Period, 10))
+	b.WriteString(",")
+	b.WriteString(strconv.FormatUint(c.Leeway, 10))
+	b.WriteString("$")
+	b.WriteString(base64.RawURLEncoding.EncodeToString(c.Secret))
+	return b.String()
+}
+
+func (c *TOTPConfig) decodeParams(params string) error {
+	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
+	if len(b) != 3 {
+		return fmt.Errorf("%w: invalid totp params format", ErrOTPParamInvalid)
+	}
+	if b[0] != "totp" {
+		return fmt.Errorf("%w: invalid totp params format", ErrOTPParamInvalid)
+	}
+	p := strings.Split(b[1], ",")
+	if len(p) != 4 {
+		return fmt.Errorf("%w: invalid totp params format", ErrOTPParamInvalid)
+	}
+	c.Alg = p[0]
+	var err error
+	c.Digits, err = strconv.Atoi(p[1])
+	if err != nil {
+		return fmt.Errorf("%w: invalid digits", ErrOTPParamInvalid)
+	}
+	c.Period, err = strconv.ParseUint(p[2], 10, 64)
+	if err != nil {
+		return fmt.Errorf("%w: invalid period", ErrOTPParamInvalid)
+	}
+	c.Leeway, err = strconv.ParseUint(p[3], 10, 64)
+	if err != nil {
+		return fmt.Errorf("%w: invalid leeway", ErrOTPParamInvalid)
+	}
+	c.Secret, err = base64.RawURLEncoding.DecodeString(b[2])
+	if err != nil {
+		return fmt.Errorf("%w: invalid secret", ErrOTPParamInvalid)
+	}
+	return nil
+}
+
+func (c TOTPURI) String() string {
+	var p string
+	q := url.Values{}
+	q.Set("secret", base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(c.Secret))
+	q.Set("algorithm", c.Alg)
+	if c.Issuer != "" {
+		q.Set("issuer", c.Issuer)
+		p = fmt.Sprintf("%s:%s", c.Issuer, c.AccountName)
+	} else {
+		p = c.AccountName
+	}
+	q.Set("digits", strconv.Itoa(c.Digits))
+	q.Set("period", strconv.FormatUint(c.Period, 10))
+	u := url.URL{
+		Scheme:   "otpauth",
+		Host:     "totp",
+		Path:     p,
+		RawQuery: q.Encode(),
+	}
+	return u.String()
 }
 
 const (
@@ -92,106 +177,8 @@ const (
 	OTPDigitsDefault = 6
 )
 
-type (
-	// OTPOpts are opts for OTP
-	OTPOpts struct {
-		Kind   string
-		Alg    string
-		Digits int
-		Period uint64
-		Leeway uint64
-	}
-
-	// OTPURIOpts are opts for OTP apps
-	OTPURIOpts struct {
-		OTPOpts
-		Issuer      string
-		AccountName string
-	}
-)
-
-// OTP kinds
-const (
-	OTPKindTOTP = "totp"
-)
-
-var (
-	otpKinds = map[string]struct{}{
-		OTPKindTOTP: {},
-	}
-)
-
-// OTP hash algorithms
-const (
-	OTPAlgSHA1   = "SHA1"
-	OTPAlgSHA256 = "SHA256"
-	OTPAlgSHA512 = "SHA512"
-)
-
-var (
-	otpAlgs = map[string]struct{}{
-		OTPAlgSHA1:   {},
-		OTPAlgSHA256: {},
-		OTPAlgSHA512: {},
-	}
-)
-
-// TOTPOpts returns TOTPOpts
-func (o OTPOpts) TOTPOpts() (*TOTPOpts, error) {
-	alg, err := otpParseHashAlg(o.Alg)
-	if err != nil {
-		return nil, err
-	}
-	return &TOTPOpts{
-		HOTPOpts: HOTPOpts{
-			Alg: alg,
-			Len: o.Digits,
-		},
-		Period: o.Period,
-	}, nil
-}
-
-func otpURI(secret []byte, opts OTPURIOpts) string {
-	var p string
-	q := url.Values{}
-	q.Set("secret", base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(secret))
-	q.Set("algorithm", opts.Alg)
-	if opts.Issuer != "" {
-		q.Set("issuer", opts.Issuer)
-		p = fmt.Sprintf("%s:%s", opts.Issuer, opts.AccountName)
-	} else {
-		p = opts.AccountName
-	}
-	q.Set("digits", strconv.Itoa(opts.Digits))
-	q.Set("period", strconv.FormatUint(opts.Period, 10))
-	u := url.URL{
-		Scheme:   "otpauth",
-		Host:     opts.Kind,
-		Path:     p,
-		RawQuery: q.Encode(),
-	}
-	return u.String()
-}
-
-func otpParamsString(secret []byte, opts OTPOpts) string {
-	b := strings.Builder{}
-	b.WriteString("$")
-	b.WriteString(opts.Kind)
-	b.WriteString("$")
-	b.WriteString(opts.Alg)
-	b.WriteString(",")
-	b.WriteString(strconv.Itoa(opts.Digits))
-	b.WriteString(",")
-	b.WriteString(strconv.FormatUint(opts.Period, 10))
-	b.WriteString(",")
-	b.WriteString(strconv.FormatUint(opts.Leeway, 10))
-	b.WriteString("$")
-	b.WriteString(base64.RawURLEncoding.EncodeToString(secret))
-	return b.String()
-}
-
-// OTPGenerateSecret generates an otp secret
-func OTPGenerateSecret(secretLength int, opts OTPURIOpts) (string, string, error) {
+// TOTPGenerateSecret generates an otp secret
+func TOTPGenerateSecret(secretLength int, opts TOTPURI) (string, string, error) {
 	secret := make([]byte, secretLength)
 	if _, err := rand.Read(secret); err != nil {
 		return "", "", err
@@ -205,87 +192,64 @@ func OTPGenerateSecret(secretLength int, opts OTPURIOpts) (string, string, error
 	if opts.Period == 0 {
 		opts.Period = TOTPPeriodDefault
 	}
-	return otpParamsString(secret, opts.OTPOpts), otpURI(secret, opts), nil
+	return opts.TOTPConfig.String(), opts.String(), nil
 }
 
-func otpParseOpts(params string) (*OTPOpts, string, error) {
-	opts := &OTPOpts{}
-	b := strings.Split(strings.TrimLeft(params, "$"), "$")
-	if len(b) != 3 {
-		return nil, "", fmt.Errorf("%w: invalid params format", ErrOTPParamInvalid)
+type (
+	// OTPHashes are a map of valid hashes
+	OTPHashes interface {
+		Get(id string) (HashConstructor, bool)
 	}
-	opts.Kind = b[0]
-	if _, ok := otpKinds[opts.Kind]; !ok {
-		return nil, "", fmt.Errorf("%w: invalid kind %s", ErrOTPParamInvalid, opts.Kind)
-	}
-	p := strings.Split(b[1], ",")
-	if len(p) != 4 {
-		return nil, "", fmt.Errorf("%w: invalid params format", ErrOTPParamInvalid)
-	}
-	secret := b[2]
-	opts.Alg = p[0]
-	if _, ok := otpAlgs[opts.Alg]; !ok {
-		return nil, "", fmt.Errorf("%w: invalid hash alg %s", ErrOTPParamInvalid, opts.Alg)
-	}
-	var err error
-	opts.Digits, err = strconv.Atoi(p[1])
-	if err != nil {
-		return nil, "", fmt.Errorf("%w: invalid digits", ErrOTPParamInvalid)
-	}
-	opts.Period, err = strconv.ParseUint(p[2], 10, 64)
-	if err != nil {
-		return nil, "", fmt.Errorf("%w: invalid period", ErrOTPParamInvalid)
-	}
-	opts.Leeway, err = strconv.ParseUint(p[3], 10, 64)
-	if err != nil {
-		return nil, "", fmt.Errorf("%w: invalid period", ErrOTPParamInvalid)
-	}
-	return opts, secret, nil
+
+	otpHashes map[string]HashConstructor
+)
+
+func (o otpHashes) Get(id string) (HashConstructor, bool) {
+	h, ok := o[id]
+	return h, ok
 }
 
-func otpParseHashAlg(name string) (crypto.Hash, error) {
-	switch name {
-	case OTPAlgSHA1:
-		return crypto.SHA1, nil
-	case OTPAlgSHA256:
-		return crypto.SHA256, nil
-	case OTPAlgSHA512:
-		return crypto.SHA512, nil
-	default:
-		var k crypto.Hash
-		return k, fmt.Errorf("%w: invalid alg %s", ErrOTPOptUnsupported, name)
-	}
-}
+// OTP hash algorithms
+const (
+	OTPAlgSHA1   = "SHA1"
+	OTPAlgSHA256 = "SHA256"
+	OTPAlgSHA512 = "SHA512"
+)
 
-// OTPVerify verifies an otp
-func OTPVerify(params string, code string) (bool, error) {
-	opts, secret, err := otpParseOpts(params)
-	if err != nil {
+var (
+	// DefaultOTPHashes are the hashes defined by RFC6238
+	DefaultOTPHashes = otpHashes{
+		OTPAlgSHA1:   crypto.SHA1.New,
+		OTPAlgSHA256: crypto.SHA256.New,
+		OTPAlgSHA512: crypto.SHA512.New,
+	}
+)
+
+// TOTPVerify verifies an otp
+func TOTPVerify(params string, code string, hashes OTPHashes) (bool, error) {
+	config := TOTPConfig{}
+	if err := config.decodeParams(params); err != nil {
 		return false, err
 	}
-	key, err := base64.RawURLEncoding.DecodeString(secret)
-	if err != nil {
-		return false, fmt.Errorf("Invalid otp secret: %w", err)
+	h, ok := hashes.Get(config.Alg)
+	if !ok {
+		return false, fmt.Errorf("%w: invalid alg", ErrOTPOptUnsupported)
 	}
 	now := uint64(time.Now().Round(0).Unix())
-	switch opts.Kind {
-	case OTPKindTOTP:
-		topts, err := opts.TOTPOpts()
+	opts := TOTPOpts{
+		Alg:    h,
+		Digits: config.Digits,
+		Period: config.Period,
+	}
+	var i uint64 = 0
+	for ; i <= config.Leeway; i += opts.Period {
+		totp, err := TOTP(config.Secret, now-i, opts)
 		if err != nil {
 			return false, err
 		}
-		var i uint64 = 0
-		for ; i <= opts.Leeway; i += opts.Period {
-			totp, err := TOTP(key, now-i, *topts)
-			if err != nil {
-				return false, err
-			}
-			if hmac.Equal([]byte(totp), []byte(code)) {
-				return true, nil
-			}
+		if hmac.Equal([]byte(totp), []byte(code)) {
+			return true, nil
 		}
-		return false, nil
-	default:
-		return false, fmt.Errorf("%w: invalid kind %s", ErrOTPOptUnsupported, opts.Kind)
 	}
+	return false, nil
 }

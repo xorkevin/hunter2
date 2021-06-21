@@ -3,18 +3,20 @@ package hunter2
 import (
 	"crypto/hmac"
 	"encoding/base64"
-	"errors"
+	"fmt"
 	"strings"
 
 	"golang.org/x/crypto/blake2b"
 )
 
 type (
+	// Blake2bHasher implements Hasher for blake2b
 	Blake2bHasher struct {
 		hashid string
 	}
 )
 
+//NewBlake2bHasher creates a new blake2b hasher
 func NewBlake2bHasher() *Blake2bHasher {
 	return &Blake2bHasher{
 		hashid: "b2b",
@@ -44,7 +46,7 @@ func (h *Blake2bHasher) Hash(key string) (string, error) {
 func (h *Blake2bHasher) Verify(key string, hash string) (bool, error) {
 	b := strings.Split(strings.TrimLeft(hash, "$"), "$")
 	if len(b) != 2 || b[0] != h.hashid {
-		return false, errors.New("Invalid blake2b hash format")
+		return false, fmt.Errorf("%w: invalid blake2b hash format", ErrHashParamInvalid)
 	}
 
 	hashval, err := base64.RawURLEncoding.DecodeString(b[1])

@@ -4,7 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"encoding/base64"
-	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -12,6 +12,7 @@ import (
 )
 
 type (
+	// ScryptConfig are scrypt params
 	ScryptConfig struct {
 		workFactor     int
 		memBlocksize   int
@@ -30,26 +31,25 @@ func (c *ScryptConfig) String() string {
 func (c *ScryptConfig) decodeParams(params string) error {
 	p := strings.Split(params, ",")
 	if len(p) != 3 {
-		return errors.New("Invalid number of params")
+		return fmt.Errorf("%w: invalid params format", ErrHashParamInvalid)
 	}
-	wf, err := strconv.Atoi(p[0])
+	var err error
+	c.workFactor, err = strconv.Atoi(p[0])
 	if err != nil {
-		return errors.New("Invalid work factor")
+		return fmt.Errorf("%w: invalid work factor", ErrHashParamInvalid)
 	}
-	mb, err := strconv.Atoi(p[1])
+	c.memBlocksize, err = strconv.Atoi(p[1])
 	if err != nil {
-		return errors.New("Invalid mem blocksize")
+		return fmt.Errorf("%w: invalid mem blocksize", ErrHashParamInvalid)
 	}
-	pf, err := strconv.Atoi(p[2])
+	c.parallelFactor, err = strconv.Atoi(p[2])
 	if err != nil {
-		return errors.New("Invalid parallel factor")
+		return fmt.Errorf("%w: invalid parallel factor", ErrHashParamInvalid)
 	}
-	c.workFactor = wf
-	c.memBlocksize = mb
-	c.parallelFactor = pf
 	return nil
 }
 
+// NewScryptConfig creates a new scrypt config
 func NewScryptConfig(workFactor, memBlocksize, parallelFactor int) ScryptConfig {
 	return ScryptConfig{
 		workFactor:     workFactor,
@@ -58,14 +58,13 @@ func NewScryptConfig(workFactor, memBlocksize, parallelFactor int) ScryptConfig 
 	}
 }
 
-func NewScryptDefaultConfig() ScryptConfig {
-	// 2016
-	// attack 0.17s, 64MB
-	// user 0.32s
-	return NewScryptConfig(65536, 8, 1)
-}
+var (
+	// DefaultScryptConfig is the default scrypt config
+	DefaultScryptConfig = NewScryptConfig(65536, 8, 1)
+)
 
 type (
+	// ScryptHasher implements Hasher for scrypt
 	ScryptHasher struct {
 		hashid  string
 		hashlen int
@@ -74,6 +73,7 @@ type (
 	}
 )
 
+// NewScryptHasher creates a new scrypt hasher
 func NewScryptHasher(hashlen, saltlen int, config ScryptConfig) *ScryptHasher {
 	return &ScryptHasher{
 		hashid:  "s0",
@@ -114,9 +114,9 @@ func (h *ScryptHasher) Hash(key string) (string, error) {
 }
 
 func (h *ScryptHasher) Verify(key string, hash string) (bool, error) {
-	b := strings.Split(strings.TrimLeft(hash, "$"), "$")
+	b := strings.Split(strings.TrimPrefix(hash, "$"), "$")
 	if len(b) != 4 || b[0] != h.hashid {
-		return false, errors.New("Invalid scrypt hash format")
+		return false, fmt.Errorf("%w: invalid scrypt hash format", ErrHashParamInvalid)
 	}
 
 	config := ScryptConfig{}

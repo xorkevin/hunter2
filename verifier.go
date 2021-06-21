@@ -2,7 +2,15 @@ package hunter2
 
 import (
 	"errors"
+	"fmt"
 	"strings"
+)
+
+var (
+	// ErrHashNotSupported is returned when the hash is unsupported
+	ErrHashNotSupported = errors.New("Hash not supported")
+	// ErrHashParamInvalid is returned when the hash param is invalid
+	ErrHashParamInvalid = errors.New("Hash invalid param")
 )
 
 type (
@@ -33,10 +41,10 @@ func (v *Verifier) RegisterHash(hasher Hasher) {
 
 // Verify checks to see if the hash of the given key matches the provided keyhash
 func (v *Verifier) Verify(key string, hash string) (bool, error) {
-	b := strings.SplitN(strings.TrimLeft(hash, "$"), "$", 2)
+	b := strings.SplitN(strings.TrimPrefix(hash, "$"), "$", 2)
 	hasher, ok := v.hashers[b[0]]
 	if !ok {
-		return false, errors.New("Hash " + b[0] + " is not registered")
+		return false, fmt.Errorf("%w: %s not registered", ErrHashNotSupported, b[0])
 	}
 	return hasher.Verify(key, hash)
 }
