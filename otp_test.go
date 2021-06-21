@@ -2,6 +2,7 @@ package hunter2
 
 import (
 	"crypto"
+	"encoding/base64"
 	"strconv"
 	"testing"
 
@@ -102,7 +103,7 @@ func TestHOTP(t *testing.T) {
 				Alg: crypto.SHA1,
 				Len: 6,
 			})
-			assert.Nil(err)
+			assert.NoError(err)
 			assert.Equal(tc.Code, code)
 		})
 	}
@@ -321,8 +322,64 @@ func TestTOTP(t *testing.T) {
 				},
 				Period: 30,
 			})
-			assert.Nil(err)
+			assert.NoError(err)
 			assert.Equal(tc.Code, code)
+		})
+	}
+}
+
+func TestOTPParams(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		Secret string
+		Opts   OTPURIOpts
+		Params string
+		URI    string
+	}{
+		{
+			Secret: "hello_world",
+			Opts: OTPURIOpts{
+				OTPOpts: OTPOpts{
+					Kind:   OTPKindTOTP,
+					Alg:    OTPAlgSHA1,
+					Digits: 6,
+					Period: 30,
+				},
+				Issuer:      "xorkevin dev",
+				AccountName: "kevin",
+			},
+			Params: "$totp$SHA1,6,30$aGVsbG9fd29ybGQ",
+			URI:    "otpauth://totp/xorkevin%20dev:kevin?algorithm=SHA1&digits=6&issuer=xorkevin+dev&period=30&secret=NBSWY3DPL53W64TMMQ",
+		},
+		{
+			Secret: "lorem ipsum",
+			Opts: OTPURIOpts{
+				OTPOpts: OTPOpts{
+					Kind:   OTPKindTOTP,
+					Alg:    OTPAlgSHA256,
+					Digits: 8,
+					Period: 15,
+				},
+				Issuer:      "governor auth",
+				AccountName: "kevin",
+			},
+			Params: "$totp$SHA256,8,15$bG9yZW0gaXBzdW0",
+			URI:    "otpauth://totp/governor%20auth:kevin?algorithm=SHA256&digits=8&issuer=governor+auth&period=15&secret=NRXXEZLNEBUXA43VNU",
+		},
+	} {
+		tc := tc
+		t.Run(tc.URI, func(t *testing.T) {
+			t.Parallel()
+
+			assert := require.New(t)
+			assert.Equal(tc.Params, otpParamsString([]byte(tc.Secret), tc.Opts.OTPOpts))
+			assert.Equal(tc.URI, otpURI([]byte(tc.Secret), tc.Opts))
+			opts, secret, err := otpParseOpts(tc.Params)
+			assert.NoError(err)
+			assert.NotNil(opts)
+			assert.Equal(tc.Opts.OTPOpts, *opts)
+			assert.Equal(base64.RawURLEncoding.EncodeToString([]byte(tc.Secret)), secret)
 		})
 	}
 }
