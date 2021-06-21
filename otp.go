@@ -31,14 +31,10 @@ type (
 )
 
 // HOTP implements RFC4226
-func HOTP(secret string, counter uint64, opts HOTPOpts) (string, error) {
+func HOTP(secret []byte, counter uint64, opts HOTPOpts) (string, error) {
 	text := make([]byte, 8)
 	binary.BigEndian.PutUint64(text, counter)
-	key, err := base64.RawURLEncoding.DecodeString(secret)
-	if err != nil {
-		return "", fmt.Errorf("Invalid otp secret: %w", err)
-	}
-	h := hmac.New(opts.Alg.New, key)
+	h := hmac.New(opts.Alg.New, secret)
 	if _, err := h.Write(text); err != nil {
 		return "", fmt.Errorf("Failed hash counter: %w", err)
 	}
@@ -73,7 +69,7 @@ type (
 )
 
 // TOTP implements RFC6238
-func TOTP(secret string, t uint64, opts TOTPOpts) (string, error) {
+func TOTP(secret []byte, t uint64, opts TOTPOpts) (string, error) {
 	if opts.Period == 0 {
 		return "", fmt.Errorf("%w: invalid period", ErrOTPInvalidOpt)
 	}
@@ -82,7 +78,11 @@ func TOTP(secret string, t uint64, opts TOTPOpts) (string, error) {
 
 // TOTPNow returns the TOTP now
 func TOTPNow(secret string, opts TOTPOpts) (string, error) {
-	return TOTP(secret, uint64(time.Now().Round(0).Unix()), opts)
+	key, err := base64.RawURLEncoding.DecodeString(secret)
+	if err != nil {
+		return "", fmt.Errorf("Invalid otp secret: %w", err)
+	}
+	return TOTP(key, uint64(time.Now().Round(0).Unix()), opts)
 }
 
 const (
@@ -99,6 +99,7 @@ type (
 		Alg    string
 		Digits int
 		Period uint64
+		Leeway uint64
 	}
 
 	// OTPURIOpts are opts for OTP apps
@@ -135,6 +136,21 @@ var (
 	}
 )
 
+// TOTPOpts returns TOTPOpts
+func (o OTPOpts) TOTPOpts() (*TOTPOpts, error) {
+	alg, err := otpParseHashAlg(o.Alg)
+	if err != nil {
+		return nil, err
+	}
+	return &TOTPOpts{
+		HOTPOpts: HOTPOpts{
+			Alg: alg,
+			Len: o.Digits,
+		},
+		Period: o.Period,
+	}, nil
+}
+
 func otpURI(secret []byte, opts OTPURIOpts) string {
 	var p string
 	q := url.Values{}
@@ -167,6 +183,8 @@ func otpParamsString(secret []byte, opts OTPOpts) string {
 	b.WriteString(strconv.Itoa(opts.Digits))
 	b.WriteString(",")
 	b.WriteString(strconv.FormatUint(opts.Period, 10))
+	b.WriteString(",")
+	b.WriteString(strconv.FormatUint(opts.Leeway, 10))
 	b.WriteString("$")
 	b.WriteString(base64.RawURLEncoding.EncodeToString(secret))
 	return b.String()
@@ -201,7 +219,7 @@ func otpParseOpts(params string) (*OTPOpts, string, error) {
 		return nil, "", fmt.Errorf("%w: invalid kind %s", ErrOTPParamInvalid, opts.Kind)
 	}
 	p := strings.Split(b[1], ",")
-	if len(p) != 3 {
+	if len(p) != 4 {
 		return nil, "", fmt.Errorf("%w: invalid params format", ErrOTPParamInvalid)
 	}
 	secret := b[2]
@@ -215,6 +233,10 @@ func otpParseOpts(params string) (*OTPOpts, string, error) {
 		return nil, "", fmt.Errorf("%w: invalid digits", ErrOTPParamInvalid)
 	}
 	opts.Period, err = strconv.ParseUint(p[2], 10, 64)
+	if err != nil {
+		return nil, "", fmt.Errorf("%w: invalid period", ErrOTPParamInvalid)
+	}
+	opts.Leeway, err = strconv.ParseUint(p[3], 10, 64)
 	if err != nil {
 		return nil, "", fmt.Errorf("%w: invalid period", ErrOTPParamInvalid)
 	}
@@ -235,29 +257,34 @@ func otpParseHashAlg(name string) (crypto.Hash, error) {
 	}
 }
 
-// Verify verifies an otp
-func Verify(params string, code string) (bool, error) {
+// OTPVerify verifies an otp
+func OTPVerify(params string, code string) (bool, error) {
 	opts, secret, err := otpParseOpts(params)
 	if err != nil {
 		return false, err
 	}
-	alg, err := otpParseHashAlg(opts.Alg)
+	key, err := base64.RawURLEncoding.DecodeString(secret)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("Invalid otp secret: %w", err)
 	}
+	now := uint64(time.Now().Round(0).Unix())
 	switch opts.Kind {
 	case OTPKindTOTP:
-		totp, err := TOTPNow(secret, TOTPOpts{
-			HOTPOpts: HOTPOpts{
-				Alg: alg,
-				Len: opts.Digits,
-			},
-			Period: opts.Period,
-		})
+		topts, err := opts.TOTPOpts()
 		if err != nil {
 			return false, err
 		}
-		return hmac.Equal([]byte(totp), []byte(code)), nil
+		var i uint64 = 0
+		for ; i <= opts.Leeway; i += opts.Period {
+			totp, err := TOTP(key, now-i, *topts)
+			if err != nil {
+				return false, err
+			}
+			if hmac.Equal([]byte(totp), []byte(code)) {
+				return true, nil
+			}
+		}
+		return false, nil
 	default:
 		return false, fmt.Errorf("%w: invalid kind %s", ErrOTPOptUnsupported, opts.Kind)
 	}

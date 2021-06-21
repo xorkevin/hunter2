@@ -47,7 +47,9 @@ Count    Hexadecimal    Decimal        HOTP
 func TestHOTP(t *testing.T) {
 	t.Parallel()
 
-	secret := "MTIzNDU2Nzg5MDEyMzQ1Njc4OTA"
+	assert := require.New(t)
+	secret, err := base64.RawURLEncoding.DecodeString("MTIzNDU2Nzg5MDEyMzQ1Njc4OTA")
+	assert.NoError(err)
 
 	for _, tc := range []struct {
 		Counter uint64
@@ -315,7 +317,9 @@ func TestTOTP(t *testing.T) {
 			t.Parallel()
 
 			assert := require.New(t)
-			code, err := TOTP(tc.Secret, tc.T, TOTPOpts{
+			secret, err := base64.RawURLEncoding.DecodeString(tc.Secret)
+			assert.NoError(err)
+			code, err := TOTP(secret, tc.T, TOTPOpts{
 				HOTPOpts: HOTPOpts{
 					Alg: tc.Alg,
 					Len: 8,
@@ -345,11 +349,12 @@ func TestOTPParams(t *testing.T) {
 					Alg:    OTPAlgSHA1,
 					Digits: 6,
 					Period: 30,
+					Leeway: 0,
 				},
 				Issuer:      "xorkevin dev",
 				AccountName: "kevin",
 			},
-			Params: "$totp$SHA1,6,30$aGVsbG9fd29ybGQ",
+			Params: "$totp$SHA1,6,30,0$aGVsbG9fd29ybGQ",
 			URI:    "otpauth://totp/xorkevin%20dev:kevin?algorithm=SHA1&digits=6&issuer=xorkevin+dev&period=30&secret=NBSWY3DPL53W64TMMQ",
 		},
 		{
@@ -360,11 +365,12 @@ func TestOTPParams(t *testing.T) {
 					Alg:    OTPAlgSHA256,
 					Digits: 8,
 					Period: 15,
+					Leeway: 1,
 				},
 				Issuer:      "governor auth",
 				AccountName: "kevin",
 			},
-			Params: "$totp$SHA256,8,15$bG9yZW0gaXBzdW0",
+			Params: "$totp$SHA256,8,15,1$bG9yZW0gaXBzdW0",
 			URI:    "otpauth://totp/governor%20auth:kevin?algorithm=SHA256&digits=8&issuer=governor+auth&period=15&secret=NRXXEZLNEBUXA43VNU",
 		},
 	} {
@@ -382,4 +388,30 @@ func TestOTPParams(t *testing.T) {
 			assert.Equal(base64.RawURLEncoding.EncodeToString([]byte(tc.Secret)), secret)
 		})
 	}
+}
+
+func TestOTPGenerateSecret(t *testing.T) {
+	t.Parallel()
+	assert := require.New(t)
+	params, _, err := OTPGenerateSecret(64, OTPURIOpts{
+		OTPOpts: OTPOpts{
+			Kind:   OTPKindTOTP,
+			Alg:    OTPAlgSHA1,
+			Digits: 6,
+			Period: 30,
+			Leeway: 1,
+		},
+		Issuer:      "xorkevin dev",
+		AccountName: "kevin",
+	})
+	assert.NoError(err)
+	opts, secret, err := otpParseOpts(params)
+	assert.NoError(err)
+	topts, err := opts.TOTPOpts()
+	assert.NoError(err)
+	code, err := TOTPNow(secret, *topts)
+	assert.NoError(err)
+	ok, err := OTPVerify(params, code)
+	assert.NoError(err)
+	assert.True(ok)
 }
