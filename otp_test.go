@@ -380,7 +380,7 @@ func TestTOTPConfig_String(t *testing.T) {
 func TestTOTPGenerateSecret(t *testing.T) {
 	t.Parallel()
 	assert := require.New(t)
-	params, _, err := TOTPGenerateSecret(64, TOTPURI{
+	params, _, err := TOTPGenerateSecret(32, TOTPURI{
 		TOTPConfig: TOTPConfig{
 			Alg:    OTPAlgSHA1,
 			Digits: 6,
