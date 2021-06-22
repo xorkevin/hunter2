@@ -17,7 +17,7 @@ type (
 )
 
 //NewBlake2bHasher creates a new blake2b hasher
-func NewBlake2bHasher() *Blake2bHasher {
+func NewBlake2bHasher() Hasher {
 	return &Blake2bHasher{
 		hashid: "b2b",
 	}

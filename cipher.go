@@ -7,7 +7,12 @@ import (
 )
 
 var (
+	// ErrCipherNotSupported is returned when the cipher is not supported
 	ErrCipherNotSupported = errors.New("Cipher not supported")
+	// ErrCipherKeyInvalid is returned when the cipher key config is invalid
+	ErrCipherKeyInvalid = errors.New("Cipher invalid key")
+	// ErrCiphertextInvalid is returned when the ciphertext is invalid
+	ErrCiphertextInvalid = errors.New("Cipher invalid ciphertext")
 )
 
 type (

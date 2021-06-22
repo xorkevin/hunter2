@@ -117,10 +117,7 @@ func (c TOTPConfig) String() string {
 
 func (c *TOTPConfig) decodeParams(params string) error {
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
-	if len(b) != 3 {
-		return fmt.Errorf("%w: invalid totp params format", ErrOTPParamInvalid)
-	}
-	if b[0] != "totp" {
+	if len(b) != 3 || b[0] != "totp" {
 		return fmt.Errorf("%w: invalid totp params format", ErrOTPParamInvalid)
 	}
 	p := strings.Split(b[1], ",")
@@ -148,10 +145,14 @@ func (c *TOTPConfig) decodeParams(params string) error {
 	return nil
 }
 
+var (
+	base32RawEncoding = base32.StdEncoding.WithPadding(base32.NoPadding)
+)
+
 func (c TOTPURI) String() string {
 	var p string
 	q := url.Values{}
-	q.Set("secret", base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(c.Secret))
+	q.Set("secret", base32RawEncoding.EncodeToString(c.Secret))
 	q.Set("algorithm", c.Alg)
 	if c.Issuer != "" {
 		q.Set("issuer", c.Issuer)

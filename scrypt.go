@@ -74,7 +74,7 @@ type (
 )
 
 // NewScryptHasher creates a new scrypt hasher
-func NewScryptHasher(hashlen, saltlen int, config ScryptConfig) *ScryptHasher {
+func NewScryptHasher(hashlen, saltlen int, config ScryptConfig) Hasher {
 	return &ScryptHasher{
 		hashid:  "s0",
 		hashlen: hashlen,
