@@ -6,16 +6,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAESCipher_Encrypt(t *testing.T) {
+func TestChaCha20Poly1305Cipher_Encrypt(t *testing.T) {
 	t.Parallel()
 
 	assert := require.New(t)
 
-	config, err := NewAESConfig("a_key_id")
+	config, err := NewChaCha20Poly1305Config("a_key_id")
 	assert.NoError(err)
 	assert.NotNil(config)
 	key := config.String()
-	aead, err := AESCipherFromParams(key)
+	aead, err := ChaCha20Poly1305CipherFromParams(key)
 	assert.NoError(err)
 	assert.NotNil(aead)
 

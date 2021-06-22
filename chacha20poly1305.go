@@ -1,47 +1,48 @@
 package hunter2
 
 import (
-	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"strings"
+
+	"golang.org/x/crypto/chacha20poly1305"
 )
 
 type (
-	// AESConfig are aes params
-	AESConfig struct {
+	// ChaCha20Poly1305Config are chacha20-poly1305 params
+	ChaCha20Poly1305Config struct {
 		kid string
 		key []byte
 	}
 )
 
 // NewAESConfig creates a new aes config
-func NewAESConfig(kid string) (*AESConfig, error) {
+func NewChaCha20Poly1305Config(kid string) (*ChaCha20Poly1305Config, error) {
 	key := make([]byte, 32)
 	if _, err := rand.Read(key); err != nil {
 		return nil, err
 	}
-	return &AESConfig{
+	return &ChaCha20Poly1305Config{
 		kid: kid,
 		key: key,
 	}, nil
 }
 
-func (c AESConfig) String() string {
+func (c ChaCha20Poly1305Config) String() string {
 	b := strings.Builder{}
-	b.WriteString("$aes$")
+	b.WriteString("$cc20p1305$")
 	b.WriteString(c.kid)
 	b.WriteString("$")
 	b.WriteString(base64.RawURLEncoding.EncodeToString(c.key))
 	return b.String()
 }
 
-// ParseAESConfig loads an aes config from params string
-func ParseAESConfig(params string) (*AESConfig, error) {
+// ParseChaCha20Poly1305Config loads a chacha20-poly1305 config from params string
+func ParseChaCha20Poly1305Config(params string) (*ChaCha20Poly1305Config, error) {
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
-	if len(b) != 3 || b[0] != "aes" {
+	if len(b) != 3 || b[0] != "cc20p1305" {
 		return nil, fmt.Errorf("%w: invalid params format", ErrCipherKeyInvalid)
 	}
 	kid := b[1]
@@ -49,53 +50,46 @@ func ParseAESConfig(params string) (*AESConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid aes key", ErrCipherKeyInvalid)
 	}
-	return &AESConfig{
+	return &ChaCha20Poly1305Config{
 		kid: kid,
 		key: key,
 	}, nil
 }
 
 type (
-	// AESCipher implements Cipher for aes
-	AESCipher struct {
+	// ChaCha20Poly1305Cipher implements Cipher for chacha20-poly1305
+	ChaCha20Poly1305Cipher struct {
 		kid    string
 		cipher cipher.AEAD
 	}
 )
 
-// NewAESCipher creates a new aes cipher
-func NewAESCipher(config AESConfig) (*AESCipher, error) {
-	block, err := aes.NewCipher(config.key)
+// NewChaCha20Poly1305Cipher creates a new chach20-poly1305 cipher
+func NewChaCha20Poly1305Cipher(config ChaCha20Poly1305Config) (*ChaCha20Poly1305Cipher, error) {
+	aead, err := chacha20poly1305.NewX(config.key)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create aes cipher: %w", err)
+		return nil, fmt.Errorf("Failed to create chacha20-poly1305 cipher: %w", err)
 	}
-	aead, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create aes gcm: %w", err)
-	}
-	return &AESCipher{
+	return &ChaCha20Poly1305Cipher{
 		kid:    config.kid,
 		cipher: aead,
 	}, nil
 }
 
-// AESCipherFromParams creates an aes cipher from params
-func AESCipherFromParams(params string) (*AESCipher, error) {
-	config, err := ParseAESConfig(params)
+// ChaCha20Poly1305CipherFromParams creates a chacha20-poly1305 cipher from params
+func ChaCha20Poly1305CipherFromParams(params string) (*ChaCha20Poly1305Cipher, error) {
+	config, err := ParseChaCha20Poly1305Config(params)
 	if err != nil {
 		return nil, err
 	}
-	return NewAESCipher(*config)
+	return NewChaCha20Poly1305Cipher(*config)
 }
 
-func (c *AESCipher) ID() string {
+func (c *ChaCha20Poly1305Cipher) ID() string {
 	return c.kid
 }
 
-// Encrypt encrypts using aes
-//
-// Security paramter is 2^32 random nonce uses.
-func (c *AESCipher) Encrypt(plaintext string) (string, error) {
+func (c *ChaCha20Poly1305Cipher) Encrypt(plaintext string) (string, error) {
 	nonce := make([]byte, c.cipher.NonceSize())
 	if _, err := rand.Read(nonce); err != nil {
 		return "", fmt.Errorf("Failed to create nonce: %w", err)
@@ -105,17 +99,17 @@ func (c *AESCipher) Encrypt(plaintext string) (string, error) {
 	b := strings.Builder{}
 	b.WriteString("$")
 	b.WriteString(c.kid)
-	b.WriteString("$aes$")
+	b.WriteString("$cc20p1305$")
 	b.WriteString(base64.RawURLEncoding.EncodeToString(nonce))
 	b.WriteString("$")
 	b.WriteString(base64.RawURLEncoding.EncodeToString(ciphertext))
 	return b.String(), nil
 }
 
-func (c *AESCipher) Decrypt(ciphertext string) (string, error) {
+func (c *ChaCha20Poly1305Cipher) Decrypt(ciphertext string) (string, error) {
 	b := strings.Split(strings.TrimPrefix(ciphertext, "$"), "$")
-	if len(b) != 4 || b[0] != c.kid || b[1] != "aes" {
-		return "", fmt.Errorf("%w: invalid aes ciphertext format", ErrCiphertextInvalid)
+	if len(b) != 4 || b[0] != c.kid || b[1] != "cc20p1305" {
+		return "", fmt.Errorf("%w: invalid chacha20-poly1305 ciphertext format", ErrCiphertextInvalid)
 	}
 	nonce, err := base64.RawURLEncoding.DecodeString(b[2])
 	if err != nil {
