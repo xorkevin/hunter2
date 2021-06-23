@@ -51,13 +51,23 @@ func otpTruncate(sum []byte) uint64 {
 		(uint64(sum[offset+3]) & 0xff)
 }
 
-func formatNumToString(num uint64, length int) string {
-	k := make([]byte, length)
-	for i := length - 1; i >= 0; i-- {
+func formatNumToString(num uint64, digits int) string {
+	k := make([]byte, digits)
+	for i := digits - 1; i >= 0; i-- {
 		k[i] = byte(num%10 + '0')
 		num /= 10
 	}
 	return string(k)
+}
+
+// GenerateRandomCode generates a random code with a specified length
+func GenerateRandomCode(digits int) (string, error) {
+	text := make([]byte, 8)
+	if _, err := rand.Read(text); err != nil {
+		return "", fmt.Errorf("Failed to generate random code: %w", err)
+	}
+	num := binary.BigEndian.Uint64(text)
+	return formatNumToString(num, digits), nil
 }
 
 type (

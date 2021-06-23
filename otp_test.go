@@ -137,6 +137,31 @@ func TestFormatNumToString(t *testing.T) {
 	}
 }
 
+func TestGenerateRandomCode(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		Len int
+	}{
+		{
+			Len: 6,
+		},
+		{
+			Len: 8,
+		},
+	} {
+		tc := tc
+		t.Run("len "+strconv.Itoa(tc.Len), func(t *testing.T) {
+			t.Parallel()
+
+			assert := require.New(t)
+			code, err := GenerateRandomCode(tc.Len)
+			assert.NoError(err)
+			assert.Len(code, tc.Len)
+		})
+	}
+}
+
 /*
 The test token shared secret uses the ASCII string value
 "12345678901234567890".  With Time Step X = 30, and the Unix epoch as the
