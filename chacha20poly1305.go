@@ -22,7 +22,7 @@ type (
 func NewChaCha20Poly1305Config(kid string) (*ChaCha20Poly1305Config, error) {
 	key := make([]byte, 32)
 	if _, err := rand.Read(key); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to generate chacha20-poly1305 key: %w", err)
 	}
 	return &ChaCha20Poly1305Config{
 		kid: kid,
@@ -48,7 +48,7 @@ func ParseChaCha20Poly1305Config(params string) (*ChaCha20Poly1305Config, error)
 	kid := b[1]
 	key, err := base64.RawURLEncoding.DecodeString(b[2])
 	if err != nil {
-		return nil, fmt.Errorf("%w: invalid aes key", ErrCipherKeyInvalid)
+		return nil, fmt.Errorf("Invalid chacha20-poly1305 key: %w", err)
 	}
 	return &ChaCha20Poly1305Config{
 		kid: kid,

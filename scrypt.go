@@ -94,11 +94,11 @@ func (h *ScryptHasher) exec(key string, salt []byte, hashLength int, c ScryptCon
 func (h *ScryptHasher) Hash(key string) (string, error) {
 	salt := make([]byte, h.saltlen)
 	if _, err := rand.Read(salt); err != nil {
-		return "", err
+		return "", fmt.Errorf("Failed to generate salt: %w", err)
 	}
 	hash, err := h.exec(key, salt, h.hashlen, h.config)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Failed to hash payload: %w", err)
 	}
 
 	b := strings.Builder{}
@@ -125,15 +125,15 @@ func (h *ScryptHasher) Verify(key string, hash string) (bool, error) {
 	}
 	salt, err := base64.RawURLEncoding.DecodeString(b[2])
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("Invalid salt: %w", err)
 	}
 	hashval, err := base64.RawURLEncoding.DecodeString(b[3])
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("Invalid hash val: %w", err)
 	}
 	res, err := h.exec(key, salt, len(hashval), config)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("Failed to hash payload: %w", err)
 	}
 	return hmac.Equal(res, hashval), nil
 }

@@ -36,7 +36,7 @@ func HOTP(secret []byte, counter uint64, alg HashConstructor, digits int) (strin
 	binary.BigEndian.PutUint64(text, counter)
 	h := hmac.New(alg, secret)
 	if _, err := h.Write(text); err != nil {
-		return "", fmt.Errorf("Failed hash counter: %w", err)
+		return "", fmt.Errorf("Failed to hash counter: %w", err)
 	}
 	sum := h.Sum(nil)
 	bin := otpTruncate(sum)
@@ -140,7 +140,7 @@ func (c *TOTPConfig) decodeParams(params string) error {
 	}
 	c.Secret, err = base64.RawURLEncoding.DecodeString(b[2])
 	if err != nil {
-		return fmt.Errorf("%w: invalid secret", ErrOTPParamInvalid)
+		return fmt.Errorf("Invalid secret: %w", err)
 	}
 	return nil
 }
@@ -182,7 +182,7 @@ const (
 func TOTPGenerateSecret(secretLength int, opts TOTPURI) (string, string, error) {
 	secret := make([]byte, secretLength)
 	if _, err := rand.Read(secret); err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("Failed to generate totp secret: %w", err)
 	}
 	if opts.Alg == "" {
 		opts.Alg = OTPAlgSHA1

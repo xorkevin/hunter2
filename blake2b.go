@@ -51,7 +51,7 @@ func (h *Blake2bHasher) Verify(key string, hash string) (bool, error) {
 
 	hashval, err := base64.RawURLEncoding.DecodeString(b[1])
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("Invalid hash val: %w", err)
 	}
 	res := h.exec(key)
 	return hmac.Equal(res, hashval), nil
