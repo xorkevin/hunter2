@@ -7,6 +7,8 @@ import (
 )
 
 func TestVerifier(t *testing.T) {
+	t.Parallel()
+
 	assert := require.New(t)
 	key := "password"
 
