@@ -11,7 +11,7 @@ func TestChaCha20Poly1305Cipher_Encrypt(t *testing.T) {
 
 	assert := require.New(t)
 
-	config, err := NewChaCha20Poly1305Config("a_key_id")
+	config, err := NewChaCha20Poly1305Config()
 	assert.NoError(err)
 	assert.NotNil(config)
 	key := config.String()

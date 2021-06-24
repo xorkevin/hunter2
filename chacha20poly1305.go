@@ -13,27 +13,25 @@ import (
 type (
 	// ChaCha20Poly1305Config are chacha20-poly1305 params
 	ChaCha20Poly1305Config struct {
-		kid string
 		key []byte
 	}
 )
 
-// NewAESConfig creates a new aes config
-func NewChaCha20Poly1305Config(kid string) (*ChaCha20Poly1305Config, error) {
+// NewChaCha20Poly1305Config creates a new chacha20 poly1305 config
+func NewChaCha20Poly1305Config() (*ChaCha20Poly1305Config, error) {
 	key := make([]byte, 32)
 	if _, err := rand.Read(key); err != nil {
 		return nil, fmt.Errorf("Failed to generate chacha20-poly1305 key: %w", err)
 	}
 	return &ChaCha20Poly1305Config{
-		kid: kid,
 		key: key,
 	}, nil
 }
 
 func (c ChaCha20Poly1305Config) String() string {
 	b := strings.Builder{}
-	b.WriteString("$cc20p1305$")
-	b.WriteString(c.kid)
+	b.WriteString("$")
+	b.WriteString(CipherAlgChaCha20Poly1305)
 	b.WriteString("$")
 	b.WriteString(base64.RawURLEncoding.EncodeToString(c.key))
 	return b.String()
@@ -42,16 +40,14 @@ func (c ChaCha20Poly1305Config) String() string {
 // ParseChaCha20Poly1305Config loads a chacha20-poly1305 config from params string
 func ParseChaCha20Poly1305Config(params string) (*ChaCha20Poly1305Config, error) {
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
-	if len(b) != 3 || b[0] != "cc20p1305" {
+	if len(b) != 2 || b[0] != CipherAlgChaCha20Poly1305 {
 		return nil, fmt.Errorf("%w: invalid params format", ErrCipherKeyInvalid)
 	}
-	kid := b[1]
-	key, err := base64.RawURLEncoding.DecodeString(b[2])
+	key, err := base64.RawURLEncoding.DecodeString(b[1])
 	if err != nil {
 		return nil, fmt.Errorf("Invalid chacha20-poly1305 key: %w", err)
 	}
 	return &ChaCha20Poly1305Config{
-		kid: kid,
 		key: key,
 	}, nil
 }
@@ -65,19 +61,19 @@ type (
 )
 
 // NewChaCha20Poly1305Cipher creates a new chach20-poly1305 cipher
-func NewChaCha20Poly1305Cipher(config ChaCha20Poly1305Config) (*ChaCha20Poly1305Cipher, error) {
+func NewChaCha20Poly1305Cipher(config ChaCha20Poly1305Config) (Cipher, error) {
 	aead, err := chacha20poly1305.NewX(config.key)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create chacha20-poly1305 cipher: %w", err)
 	}
 	return &ChaCha20Poly1305Cipher{
-		kid:    config.kid,
+		kid:    cipherKeyID(config.String()),
 		cipher: aead,
 	}, nil
 }
 
 // ChaCha20Poly1305CipherFromParams creates a chacha20-poly1305 cipher from params
-func ChaCha20Poly1305CipherFromParams(params string) (*ChaCha20Poly1305Cipher, error) {
+func ChaCha20Poly1305CipherFromParams(params string) (Cipher, error) {
 	config, err := ParseChaCha20Poly1305Config(params)
 	if err != nil {
 		return nil, err
@@ -99,7 +95,9 @@ func (c *ChaCha20Poly1305Cipher) Encrypt(plaintext string) (string, error) {
 	b := strings.Builder{}
 	b.WriteString("$")
 	b.WriteString(c.kid)
-	b.WriteString("$cc20p1305$")
+	b.WriteString("$")
+	b.WriteString(CipherAlgChaCha20Poly1305)
+	b.WriteString("$")
 	b.WriteString(base64.RawURLEncoding.EncodeToString(nonce))
 	b.WriteString("$")
 	b.WriteString(base64.RawURLEncoding.EncodeToString(ciphertext))
@@ -108,7 +106,7 @@ func (c *ChaCha20Poly1305Cipher) Encrypt(plaintext string) (string, error) {
 
 func (c *ChaCha20Poly1305Cipher) Decrypt(ciphertext string) (string, error) {
 	b := strings.Split(strings.TrimPrefix(ciphertext, "$"), "$")
-	if len(b) != 4 || b[0] != c.kid || b[1] != "cc20p1305" {
+	if len(b) != 4 || b[0] != c.kid || b[1] != CipherAlgChaCha20Poly1305 {
 		return "", fmt.Errorf("%w: invalid chacha20-poly1305 ciphertext format", ErrCiphertextInvalid)
 	}
 	nonce, err := base64.RawURLEncoding.DecodeString(b[2])

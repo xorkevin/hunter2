@@ -12,27 +12,25 @@ import (
 type (
 	// AESConfig are aes params
 	AESConfig struct {
-		kid string
 		key []byte
 	}
 )
 
 // NewAESConfig creates a new aes config
-func NewAESConfig(kid string) (*AESConfig, error) {
+func NewAESConfig() (*AESConfig, error) {
 	key := make([]byte, 32)
 	if _, err := rand.Read(key); err != nil {
 		return nil, fmt.Errorf("Failed to generate aes key: %w", err)
 	}
 	return &AESConfig{
-		kid: kid,
 		key: key,
 	}, nil
 }
 
 func (c AESConfig) String() string {
 	b := strings.Builder{}
-	b.WriteString("$aes$")
-	b.WriteString(c.kid)
+	b.WriteString("$")
+	b.WriteString(CipherAlgAES)
 	b.WriteString("$")
 	b.WriteString(base64.RawURLEncoding.EncodeToString(c.key))
 	return b.String()
@@ -41,16 +39,14 @@ func (c AESConfig) String() string {
 // ParseAESConfig loads an aes config from params string
 func ParseAESConfig(params string) (*AESConfig, error) {
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
-	if len(b) != 3 || b[0] != "aes" {
+	if len(b) != 2 || b[0] != CipherAlgAES {
 		return nil, fmt.Errorf("%w: invalid params format", ErrCipherKeyInvalid)
 	}
-	kid := b[1]
-	key, err := base64.RawURLEncoding.DecodeString(b[2])
+	key, err := base64.RawURLEncoding.DecodeString(b[1])
 	if err != nil {
 		return nil, fmt.Errorf("Invalid aes key: %w", err)
 	}
 	return &AESConfig{
-		kid: kid,
 		key: key,
 	}, nil
 }
@@ -64,7 +60,7 @@ type (
 )
 
 // NewAESCipher creates a new aes cipher
-func NewAESCipher(config AESConfig) (*AESCipher, error) {
+func NewAESCipher(config AESConfig) (Cipher, error) {
 	block, err := aes.NewCipher(config.key)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create aes cipher: %w", err)
@@ -74,13 +70,13 @@ func NewAESCipher(config AESConfig) (*AESCipher, error) {
 		return nil, fmt.Errorf("Failed to create aes gcm: %w", err)
 	}
 	return &AESCipher{
-		kid:    config.kid,
+		kid:    cipherKeyID(config.String()),
 		cipher: aead,
 	}, nil
 }
 
 // AESCipherFromParams creates an aes cipher from params
-func AESCipherFromParams(params string) (*AESCipher, error) {
+func AESCipherFromParams(params string) (Cipher, error) {
 	config, err := ParseAESConfig(params)
 	if err != nil {
 		return nil, err
@@ -105,7 +101,9 @@ func (c *AESCipher) Encrypt(plaintext string) (string, error) {
 	b := strings.Builder{}
 	b.WriteString("$")
 	b.WriteString(c.kid)
-	b.WriteString("$aes$")
+	b.WriteString("$")
+	b.WriteString(CipherAlgAES)
+	b.WriteString("$")
 	b.WriteString(base64.RawURLEncoding.EncodeToString(nonce))
 	b.WriteString("$")
 	b.WriteString(base64.RawURLEncoding.EncodeToString(ciphertext))
@@ -114,7 +112,7 @@ func (c *AESCipher) Encrypt(plaintext string) (string, error) {
 
 func (c *AESCipher) Decrypt(ciphertext string) (string, error) {
 	b := strings.Split(strings.TrimPrefix(ciphertext, "$"), "$")
-	if len(b) != 4 || b[0] != c.kid || b[1] != "aes" {
+	if len(b) != 4 || b[0] != c.kid || b[1] != CipherAlgAES {
 		return "", fmt.Errorf("%w: invalid aes ciphertext format", ErrCiphertextInvalid)
 	}
 	nonce, err := base64.RawURLEncoding.DecodeString(b[2])

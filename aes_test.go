@@ -11,7 +11,7 @@ func TestAESCipher_Encrypt(t *testing.T) {
 
 	assert := require.New(t)
 
-	config, err := NewAESConfig("a_key_id")
+	config, err := NewAESConfig()
 	assert.NoError(err)
 	assert.NotNil(config)
 	key := config.String()
