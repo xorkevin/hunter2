@@ -74,7 +74,7 @@ func (c cipherAlgs) Get(id string) (CipherConstructor, bool) {
 // Cipher algorithms
 const (
 	CipherAlgAES              = "aes"
-	CipherAlgChaCha20Poly1305 = "ccp20p1305"
+	CipherAlgChaCha20Poly1305 = "cc20p"
 )
 
 var (
