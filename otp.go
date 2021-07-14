@@ -252,8 +252,7 @@ func TOTPVerify(params string, code string, hashes OTPHashes) (bool, error) {
 		Digits: config.Digits,
 		Period: config.Period,
 	}
-	var i uint64 = 0
-	for ; i <= config.Leeway; i += opts.Period {
+	for i := uint64(0); i <= config.Leeway; i += opts.Period {
 		totp, err := TOTP(config.Secret, now-i, opts)
 		if err != nil {
 			return false, err
