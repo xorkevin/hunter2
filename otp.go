@@ -190,8 +190,8 @@ const (
 
 // TOTPGenerateSecret generates an otp secret
 func TOTPGenerateSecret(secretLength int, opts TOTPURI) (string, string, error) {
-	secret := make([]byte, secretLength)
-	if _, err := rand.Read(secret); err != nil {
+	opts.Secret = make([]byte, secretLength)
+	if _, err := rand.Read(opts.Secret); err != nil {
 		return "", "", fmt.Errorf("Failed to generate totp secret: %w", err)
 	}
 	if opts.Alg == "" {

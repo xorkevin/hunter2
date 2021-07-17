@@ -419,6 +419,7 @@ func TestTOTPGenerateSecret(t *testing.T) {
 
 	config := TOTPConfig{}
 	assert.NoError(config.decodeParams(params))
+	assert.Len(config.Secret, 32)
 	code, err := TOTPNow(config.Secret, TOTPOpts{
 		Alg:    crypto.SHA1.New,
 		Digits: 6,
