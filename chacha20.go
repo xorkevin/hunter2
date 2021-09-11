@@ -119,9 +119,10 @@ func (a *Poly1305Auth) Write(src []byte) (int, error) {
 func (a *Poly1305Auth) WriteCount() error {
 	if n := a.count % 16; n > 0 {
 		// pad length to 16 bytes
-		b := make([]byte, 16-n)
+		l := 16 - n
+		b := make([]byte, l)
 		k, err := a.h.Write(b)
-		if k != int(n) && err == nil {
+		if k != int(l) && err == nil {
 			// should never happen
 			err = io.ErrShortWrite
 		}

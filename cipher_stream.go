@@ -3,7 +3,6 @@ package hunter2
 import (
 	"crypto/cipher"
 	"errors"
-	"hash"
 	"io"
 )
 
@@ -19,6 +18,14 @@ type (
 		R io.Reader
 	}
 )
+
+func NewEncStreamReader(s cipher.Stream, h io.Writer, r io.Reader) *EncStreamReader {
+	return &EncStreamReader{
+		S: s,
+		H: h,
+		R: r,
+	}
+}
 
 func (r *EncStreamReader) Read(dst []byte) (int, error) {
 	n, err := r.R.Read(dst)
@@ -40,7 +47,7 @@ func (r *EncStreamReader) Read(dst []byte) (int, error) {
 type (
 	EncStreamWriter struct {
 		S cipher.Stream
-		H hash.Hash
+		H io.Writer
 		W io.Writer
 	}
 )
@@ -78,10 +85,18 @@ func (w *EncStreamWriter) Close() error {
 type (
 	DecStreamReader struct {
 		S cipher.Stream
-		H hash.Hash
+		H io.Writer
 		R io.Reader
 	}
 )
+
+func NewDecStreamReader(s cipher.Stream, h io.Writer, r io.Reader) *DecStreamReader {
+	return &DecStreamReader{
+		S: s,
+		H: h,
+		R: r,
+	}
+}
 
 func (r *DecStreamReader) Read(dst []byte) (int, error) {
 	n, err := r.R.Read(dst)
@@ -103,7 +118,7 @@ func (r *DecStreamReader) Read(dst []byte) (int, error) {
 type (
 	DecStreamWriter struct {
 		S cipher.Stream
-		H hash.Hash
+		H io.Writer
 		W io.Writer
 	}
 )
