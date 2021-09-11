@@ -7,18 +7,10 @@ import (
 )
 
 type (
-	StreamHash interface {
-		io.Writer
-		Sum(b []byte) []byte
-	}
-)
-
-type (
 	EncStreamReader struct {
-		S     cipher.Stream
-		H     StreamHash
-		R     io.Reader
-		Count uint64
+		S cipher.Stream
+		H io.Writer
+		R io.Reader
 	}
 )
 
@@ -26,7 +18,6 @@ func (r *EncStreamReader) Read(dst []byte) (int, error) {
 	n, err := r.R.Read(dst)
 	if n > 0 {
 		r.S.XORKeyStream(dst[:n], dst[:n])
-		r.Count += uint64(n)
 		k, err := r.H.Write(dst[:n])
 		if k != n && err == nil {
 			// should never happen
@@ -42,10 +33,9 @@ func (r *EncStreamReader) Read(dst []byte) (int, error) {
 
 type (
 	EncStreamWriter struct {
-		S     cipher.Stream
-		H     hash.Hash
-		W     io.Writer
-		Count uint64
+		S cipher.Stream
+		H hash.Hash
+		W io.Writer
 	}
 )
 
@@ -60,7 +50,6 @@ func (w *EncStreamWriter) Write(src []byte) (int, error) {
 	if err != nil {
 		return n, err
 	}
-	w.Count += uint64(len(src))
 	k, err := w.H.Write(c)
 	if k != n && err == nil {
 		// should never happen
@@ -82,17 +71,15 @@ func (w *EncStreamWriter) Close() error {
 
 type (
 	DecStreamReader struct {
-		S     cipher.Stream
-		H     hash.Hash
-		R     io.Reader
-		Count uint64
+		S cipher.Stream
+		H hash.Hash
+		R io.Reader
 	}
 )
 
 func (r *DecStreamReader) Read(dst []byte) (int, error) {
 	n, err := r.R.Read(dst)
 	if n > 0 {
-		r.Count += uint64(n)
 		k, err := r.H.Write(dst[:n])
 		if k != n && err == nil {
 			// should never happen
@@ -109,15 +96,13 @@ func (r *DecStreamReader) Read(dst []byte) (int, error) {
 
 type (
 	DecStreamWriter struct {
-		S     cipher.Stream
-		H     hash.Hash
-		W     io.Writer
-		Count uint64
+		S cipher.Stream
+		H hash.Hash
+		W io.Writer
 	}
 )
 
 func (w *DecStreamWriter) Write(src []byte) (int, error) {
-	w.Count += uint64(len(src))
 	k, err := w.H.Write(src)
 	if k != len(src) && err == nil {
 		// should never happen

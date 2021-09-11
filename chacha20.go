@@ -74,25 +74,48 @@ func NewChaCha20Stream(config ChaCha20Config) (cipher.Stream, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create chacha20 cipher stream: %w", err)
 	}
+	stream.SetCounter(1)
 	return stream, nil
 }
 
+type (
+	// Poly1305Auth computes a poly1305 auth tag
+	Poly1305Auth struct {
+		h     *poly1305.MAC
+		count uint64
+	}
+)
+
 // NewPoly1305Auth creates a new poly1305 hash to authenticate a cipher stream
-func NewPoly1305Auth(c ChaCha20Config) (StreamHash, error) {
+func NewPoly1305Auth(c ChaCha20Config) (*Poly1305Auth, error) {
 	s, err := chacha20.NewUnauthenticatedCipher(c.Key, c.Nonce)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to generate poly1305 key: %w", err)
 	}
+	s.SetCounter(0)
 	polyKey := [32]byte{}
 	s.XORKeyStream(polyKey[:], polyKey[:])
-	return poly1305.New(&polyKey), nil
+	return &Poly1305Auth{
+		h:     poly1305.New(&polyKey),
+		count: 0,
+	}, nil
 }
 
-// Poly1305WriteCount writes the count
-func Poly1305WriteCount(h StreamHash, count uint64) error {
-	if n := count % 16; n > 0 {
-		b := make([]byte, n)
-		k, err := h.Write(b)
+func (a *Poly1305Auth) Write(src []byte) (int, error) {
+	n, err := a.h.Write(src)
+	if n != len(src) && err == nil {
+		// should never happen
+		err = io.ErrShortWrite
+	}
+	a.count += uint64(n)
+	return n, err
+}
+
+func (a *Poly1305Auth) WriteCount() error {
+	if n := a.count % 16; n > 0 {
+		// pad length to 16 bytes
+		b := make([]byte, 16-n)
+		k, err := a.h.Write(b)
 		if k != int(n) && err == nil {
 			// should never happen
 			err = io.ErrShortWrite
@@ -102,5 +125,18 @@ func Poly1305WriteCount(h StreamHash, count uint64) error {
 			return err
 		}
 	}
-	return binary.Write(h, binary.LittleEndian, count)
+	return binary.Write(a.h, binary.LittleEndian, a.count)
+}
+
+func (a *Poly1305Auth) Sum(b []byte) []byte {
+	return a.h.Sum(b)
+}
+
+func (a *Poly1305Auth) String() string {
+	b := strings.Builder{}
+	b.WriteString("$")
+	b.WriteString(CipherAuthAlgPoly1305)
+	b.WriteString("$")
+	b.WriteString(base64.RawURLEncoding.EncodeToString(a.Sum(nil)))
+	return b.String()
 }
