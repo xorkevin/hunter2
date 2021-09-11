@@ -2,6 +2,7 @@ package hunter2
 
 import (
 	"crypto/cipher"
+	"crypto/hmac"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
@@ -37,6 +38,7 @@ func NewChaCha20Config() (*ChaCha20Config, error) {
 	}, nil
 }
 
+// String returns a chacha20 config as a string
 func (c ChaCha20Config) String() string {
 	b := strings.Builder{}
 	b.WriteString("$")
@@ -101,6 +103,7 @@ func NewPoly1305Auth(c ChaCha20Config) (*Poly1305Auth, error) {
 	}, nil
 }
 
+// Write implements io.Writer
 func (a *Poly1305Auth) Write(src []byte) (int, error) {
 	n, err := a.h.Write(src)
 	if n != len(src) && err == nil {
@@ -111,6 +114,8 @@ func (a *Poly1305Auth) Write(src []byte) (int, error) {
 	return n, err
 }
 
+// WriteCount writes the number of bytes of the input to the hash and should be
+// called after writing all the input. This prevents length extension attacks.
 func (a *Poly1305Auth) WriteCount() error {
 	if n := a.count % 16; n > 0 {
 		// pad length to 16 bytes
@@ -128,10 +133,12 @@ func (a *Poly1305Auth) WriteCount() error {
 	return binary.Write(a.h, binary.LittleEndian, a.count)
 }
 
+// Sum returns the poly1305 hash of the input
 func (a *Poly1305Auth) Sum(b []byte) []byte {
 	return a.h.Sum(b)
 }
 
+// String returns a string auth tag
 func (a *Poly1305Auth) String() string {
 	b := strings.Builder{}
 	b.WriteString("$")
@@ -139,4 +146,29 @@ func (a *Poly1305Auth) String() string {
 	b.WriteString("$")
 	b.WriteString(base64.RawURLEncoding.EncodeToString(a.Sum(nil)))
 	return b.String()
+}
+
+// Auth authenticates ciphertext with an auth tag
+func (a *Poly1305Auth) Auth(s string) error {
+	tag, err := ParsePoly1305Tag(s)
+	if err != nil {
+		return err
+	}
+	if !hmac.Equal(tag, a.Sum(nil)) {
+		return ErrCiphertextInvalid
+	}
+	return nil
+}
+
+// ParsePoly1305Tag loads a poly1305 tag from string
+func ParsePoly1305Tag(s string) ([]byte, error) {
+	b := strings.Split(strings.TrimPrefix(s, "$"), "$")
+	if len(b) != 2 || b[0] != CipherAuthAlgPoly1305 {
+		return nil, fmt.Errorf("%w: invalid auth tag format", ErrCipherAuthInvalid)
+	}
+	tag, err := base64.RawURLEncoding.DecodeString(b[1])
+	if err != nil {
+		return nil, fmt.Errorf("Invalid poly1305 tag: %w", err)
+	}
+	return tag, nil
 }

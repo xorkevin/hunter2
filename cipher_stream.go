@@ -2,8 +2,14 @@ package hunter2
 
 import (
 	"crypto/cipher"
+	"errors"
 	"hash"
 	"io"
+)
+
+var (
+	// ErrCipherAuthInvalid is returned when the cipher auth tag is invalid
+	ErrCipherAuthInvalid = errors.New("Cipher invalid auth tag")
 )
 
 type (
