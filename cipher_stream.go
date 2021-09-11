@@ -2,8 +2,6 @@ package hunter2
 
 import (
 	"crypto/cipher"
-	"crypto/hmac"
-	"encoding/binary"
 	"hash"
 	"io"
 )
@@ -40,14 +38,6 @@ func (r *EncStreamReader) Read(dst []byte) (int, error) {
 		}
 	}
 	return n, err
-}
-
-func (r *EncStreamReader) WriteCount() error {
-	return binary.Write(r.H, binary.LittleEndian, r.Count)
-}
-
-func (r EncStreamReader) Hash() []byte {
-	return r.H.Sum(nil)
 }
 
 type (
@@ -90,14 +80,6 @@ func (w *EncStreamWriter) Close() error {
 	return nil
 }
 
-func (w *EncStreamWriter) WriteCount() error {
-	return binary.Write(w.H, binary.LittleEndian, w.Count)
-}
-
-func (w EncStreamWriter) Hash() []byte {
-	return w.H.Sum(nil)
-}
-
 type (
 	DecStreamReader struct {
 		S     cipher.Stream
@@ -123,17 +105,6 @@ func (r *DecStreamReader) Read(dst []byte) (int, error) {
 		r.S.XORKeyStream(dst[:n], dst[:n])
 	}
 	return n, err
-}
-
-func (r *DecStreamReader) WriteCount() error {
-	return binary.Write(r.H, binary.LittleEndian, r.Count)
-}
-
-func (r DecStreamReader) Auth(h []byte) error {
-	if !hmac.Equal(r.H.Sum(nil), h) {
-		return ErrCiphertextInvalid
-	}
-	return nil
 }
 
 type (
@@ -172,17 +143,6 @@ func (w *DecStreamWriter) Write(src []byte) (int, error) {
 func (w *DecStreamWriter) Close() error {
 	if c, ok := w.W.(io.Closer); ok {
 		return c.Close()
-	}
-	return nil
-}
-
-func (w *DecStreamWriter) WriteCount() error {
-	return binary.Write(w.H, binary.LittleEndian, w.Count)
-}
-
-func (r DecStreamWriter) Auth(h []byte) error {
-	if !hmac.Equal(r.H.Sum(nil), h) {
-		return ErrCiphertextInvalid
 	}
 	return nil
 }

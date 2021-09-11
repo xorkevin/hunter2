@@ -4,7 +4,9 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/binary"
 	"fmt"
+	"io"
 	"strings"
 
 	"golang.org/x/crypto/chacha20"
@@ -84,4 +86,21 @@ func NewPoly1305Auth(c ChaCha20Config) (StreamHash, error) {
 	polyKey := [32]byte{}
 	s.XORKeyStream(polyKey[:], polyKey[:])
 	return poly1305.New(&polyKey), nil
+}
+
+// Poly1305WriteCount writes the count
+func Poly1305WriteCount(h StreamHash, count uint64) error {
+	if n := count % 16; n > 0 {
+		b := make([]byte, n)
+		k, err := h.Write(b)
+		if k != int(n) && err == nil {
+			// should never happen
+			err = io.ErrShortWrite
+		}
+		if err != nil {
+			// should not happen as specified by hash.Hash
+			return err
+		}
+	}
+	return binary.Write(h, binary.LittleEndian, count)
 }
