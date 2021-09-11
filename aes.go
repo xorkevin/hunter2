@@ -12,7 +12,7 @@ import (
 type (
 	// AESConfig are aes params
 	AESConfig struct {
-		key []byte
+		Key []byte
 	}
 )
 
@@ -23,7 +23,7 @@ func NewAESConfig() (*AESConfig, error) {
 		return nil, fmt.Errorf("Failed to generate aes key: %w", err)
 	}
 	return &AESConfig{
-		key: key,
+		Key: key,
 	}, nil
 }
 
@@ -32,7 +32,7 @@ func (c AESConfig) String() string {
 	b.WriteString("$")
 	b.WriteString(CipherAlgAES)
 	b.WriteString("$")
-	b.WriteString(base64.RawURLEncoding.EncodeToString(c.key))
+	b.WriteString(base64.RawURLEncoding.EncodeToString(c.Key))
 	return b.String()
 }
 
@@ -47,7 +47,7 @@ func ParseAESConfig(params string) (*AESConfig, error) {
 		return nil, fmt.Errorf("Invalid aes key: %w", err)
 	}
 	return &AESConfig{
-		key: key,
+		Key: key,
 	}, nil
 }
 
@@ -61,7 +61,7 @@ type (
 
 // NewAESCipher creates a new aes cipher
 func NewAESCipher(config AESConfig) (Cipher, error) {
-	block, err := aes.NewCipher(config.key)
+	block, err := aes.NewCipher(config.Key)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create aes cipher: %w", err)
 	}

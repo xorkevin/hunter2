@@ -48,3 +48,9 @@ func (v *Verifier) Verify(key string, hash string) (bool, error) {
 	}
 	return hasher.Verify(key, hash)
 }
+
+// Hash IDs
+const (
+	HashIDScrypt  = "s0"
+	HashIDBlake2b = "b2b"
+)
