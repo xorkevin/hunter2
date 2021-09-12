@@ -52,6 +52,14 @@ type (
 	}
 )
 
+func NewEncStreamWriter(s cipher.Stream, h io.Writer, w io.Writer) *EncStreamWriter {
+	return &EncStreamWriter{
+		S: s,
+		H: h,
+		W: w,
+	}
+}
+
 func (w *EncStreamWriter) Write(src []byte) (int, error) {
 	c := make([]byte, len(src))
 	w.S.XORKeyStream(c, src)
@@ -122,6 +130,14 @@ type (
 		W io.Writer
 	}
 )
+
+func NewDecStreamWriter(s cipher.Stream, h io.Writer, w io.Writer) *DecStreamWriter {
+	return &DecStreamWriter{
+		S: s,
+		H: h,
+		W: w,
+	}
+}
 
 func (w *DecStreamWriter) Write(src []byte) (int, error) {
 	k, err := w.H.Write(src)

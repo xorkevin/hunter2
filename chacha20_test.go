@@ -14,16 +14,10 @@ func TestChaCha20Stream_Write(t *testing.T) {
 
 	assert := require.New(t)
 
-	var key string
-	{
-		config, err := NewChaCha20Config()
-		assert.NoError(err)
-		assert.NotNil(config)
-		key = config.String()
-	}
-	config, err := ParseChaCha20Config(key)
+	config, err := NewChaCha20Config()
 	assert.NoError(err)
 	assert.NotNil(config)
+	key := config.String()
 
 	for _, tc := range []struct {
 		Plaintext string
@@ -54,6 +48,9 @@ func TestChaCha20Stream_Write(t *testing.T) {
 			tag := auth.String()
 
 			{
+				config, err := ParseChaCha20Config(key)
+				assert.NoError(err)
+				assert.NotNil(config)
 				stream, err := NewChaCha20Stream(*config)
 				assert.NoError(err)
 				auth, err := NewPoly1305Auth(*config)
