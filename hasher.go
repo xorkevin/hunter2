@@ -41,10 +41,10 @@ func (v *Verifier) RegisterHash(hasher Hasher) {
 
 // Verify checks to see if the hash of the given key matches the provided keyhash
 func (v *Verifier) Verify(key string, hash string) (bool, error) {
-	b := strings.SplitN(strings.TrimPrefix(hash, "$"), "$", 2)
-	hasher, ok := v.hashers[b[0]]
+	id, _, _ := strings.Cut(strings.TrimPrefix(hash, "$"), "$")
+	hasher, ok := v.hashers[id]
 	if !ok {
-		return false, fmt.Errorf("%w: %s not registered", ErrHashNotSupported, b[0])
+		return false, fmt.Errorf("%w: %s not registered", ErrHashNotSupported, id)
 	}
 	return hasher.Verify(key, hash)
 }

@@ -46,10 +46,10 @@ func (d *Decrypter) RegisterCipher(cipher Cipher) {
 
 // Decrypt finds the cipher by id and returns plaintext
 func (d *Decrypter) Decrypt(ciphertext string) (string, error) {
-	b := strings.SplitN(strings.TrimPrefix(ciphertext, "$"), "$", 2)
-	cipher, ok := d.ciphers[b[0]]
+	id, _, _ := strings.Cut(strings.TrimPrefix(ciphertext, "$"), "$")
+	cipher, ok := d.ciphers[id]
 	if !ok {
-		return "", fmt.Errorf("%w: %s not registered", ErrCipherNotSupported, b[0])
+		return "", fmt.Errorf("%w: %s not registered", ErrCipherNotSupported, id)
 	}
 	return cipher.Decrypt(ciphertext)
 }
@@ -87,10 +87,10 @@ var (
 
 // CipherFromParams creates a cipher from params
 func CipherFromParams(params string, ciphers CipherAlgs) (Cipher, error) {
-	b := strings.SplitN(strings.TrimPrefix(params, "$"), "$", 2)
-	c, ok := ciphers.Get(b[0])
+	id, _, _ := strings.Cut(strings.TrimPrefix(params, "$"), "$")
+	c, ok := ciphers.Get(id)
 	if !ok {
-		return nil, fmt.Errorf("%w: invalid alg", ErrCipherNotSupported)
+		return nil, fmt.Errorf("%w: %s not registered", ErrCipherNotSupported, id)
 	}
 	return c(params)
 }
