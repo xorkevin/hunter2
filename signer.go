@@ -32,6 +32,13 @@ type (
 	}
 )
 
+// NewSigningKeyring creates a new signing keyring
+func NewSigningKeyring() *SigningKeyring {
+	return &SigningKeyring{
+		keys: map[string]SigningKey{},
+	}
+}
+
 // RegisterSigningKey registers a signing key
 func (s *SigningKeyring) RegisterSigningKey(k SigningKey) {
 	s.keys[k.ID()] = k
@@ -59,6 +66,11 @@ type (
 
 	signingKeysMap map[string]SigningKeyConstructor
 )
+
+func (s signingKeysMap) Get(id string) (SigningKeyConstructor, bool) {
+	a, ok := s[id]
+	return a, ok
+}
 
 // Signing key algorithms
 const (
