@@ -26,25 +26,25 @@ type (
 		Public() crypto.PublicKey
 	}
 
-	// SigningKeychain holds signing keys
-	SigningKeychain struct {
+	// SigningKeyring holds signing keys
+	SigningKeyring struct {
 		keys map[string]SigningKey
 	}
 )
 
 // RegisterSigningKey registers a signing key
-func (s *SigningKeychain) RegisterSigningKey(k SigningKey) {
+func (s *SigningKeyring) RegisterSigningKey(k SigningKey) {
 	s.keys[k.ID()] = k
 }
 
 // Get gets a registered signing key by id
-func (s *SigningKeychain) Get(id string) (SigningKey, bool) {
+func (s *SigningKeyring) Get(id string) (SigningKey, bool) {
 	k, ok := s.keys[id]
 	return k, ok
 }
 
 // Size returns the number of registered signing keys
-func (s *SigningKeychain) Size() int {
+func (s *SigningKeyring) Size() int {
 	return len(s.keys)
 }
 
