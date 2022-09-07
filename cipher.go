@@ -13,7 +13,7 @@ var (
 	// ErrCipherNotSupported is returned when the cipher is not supported
 	ErrCipherNotSupported = errors.New("Cipher not supported")
 	// ErrCipherKeyInvalid is returned when the cipher key config is invalid
-	ErrCipherKeyInvalid = errors.New("Cipher invalid key")
+	ErrCipherKeyInvalid = errors.New("Invalid cipher key")
 	// ErrCiphertextInvalid is returned when the ciphertext is invalid
 	ErrCiphertextInvalid = errors.New("Cipher invalid ciphertext")
 )
@@ -54,6 +54,11 @@ func (d *Decrypter) Decrypt(ciphertext string) (string, error) {
 	return cipher.Decrypt(ciphertext)
 }
 
+// Size returns the number of registered ciphers
+func (d *Decrypter) Size() int {
+	return len(d.ciphers)
+}
+
 type (
 	// CipherConstructor constructs a new cipher from params
 	CipherConstructor = func(params string) (Cipher, error)
@@ -63,10 +68,10 @@ type (
 		Get(id string) (CipherConstructor, bool)
 	}
 
-	cipherAlgs map[string]CipherConstructor
+	cipherAlgsMap map[string]CipherConstructor
 )
 
-func (c cipherAlgs) Get(id string) (CipherConstructor, bool) {
+func (c cipherAlgsMap) Get(id string) (CipherConstructor, bool) {
 	a, ok := c[id]
 	return a, ok
 }
@@ -79,7 +84,7 @@ const (
 
 var (
 	// DefaultCipherAlgs are the default supported cipher algs
-	DefaultCipherAlgs = cipherAlgs{
+	DefaultCipherAlgs = cipherAlgsMap{
 		CipherAlgAES:              AESCipherFromParams,
 		CipherAlgChaCha20Poly1305: ChaCha20Poly1305CipherFromParams,
 	}
