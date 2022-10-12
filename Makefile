@@ -1,24 +1,21 @@
-.PHONY: test coverage cover bench fmt vet prepare
+.PHONY: test coverage cover
 
-TEST_ARGS=
-COVERAGE=cover.out
-COVERAGE_ARGS=-covermode count -coverprofile $(COVERAGE)
+TEST_ARGS?=
+TEST_PACKAGE?=./...
+COVERAGE?=cover.out
 
 test:
-	go test $(TEST_ARGS) -cover $(COVERAGE_ARGS) ./...
+	go test -race -trimpath -ldflags "-w -s" -cover -covermode atomic -coverprofile $(COVERAGE) $(TEST_ARGS) $(TEST_PACKAGE)
 
 coverage:
 	go tool cover -html $(COVERAGE)
 
 cover: test coverage
 
-BENCHMARK_ARGS=-benchtime 5s -benchmem
-
-bench:
-	go test -bench . $(BENCHMARK_ARGS)
+.PHONY: fmt vet prepare
 
 fmt:
-	go fmt ./...
+	goimports -w .
 
 vet:
 	go vet ./...

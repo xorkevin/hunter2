@@ -34,10 +34,6 @@ func (k *RS256Key) Public() crypto.PublicKey {
 	return k.pub
 }
 
-const (
-	rsaPrivateBlockType = "PRIVATE KEY"
-)
-
 // RS256FromParams creates an RS256 key from params
 func RS256FromParams(params string) (SigningKey, error) {
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
@@ -45,7 +41,7 @@ func RS256FromParams(params string) (SigningKey, error) {
 		return nil, fmt.Errorf("%w: Invalid params format", ErrSigningKeyInvalid)
 	}
 	pemBlock, rest := pem.Decode([]byte(b[1]))
-	if pemBlock == nil || pemBlock.Type != rsaPrivateBlockType || len(rest) != 0 {
+	if pemBlock == nil || pemBlock.Type != privateKeyBlockType || len(rest) != 0 {
 		return nil, fmt.Errorf("%w: Invalid rsakey pem", ErrSigningKeyInvalid)
 	}
 	rawKey, err := x509.ParsePKCS8PrivateKey(pemBlock.Bytes)

@@ -70,11 +70,3 @@ func TestScryptHasher(t *testing.T) {
 	assert.Equal("", hash, "invalid config should fail")
 	assert.Error(err, "invalid config should fail")
 }
-
-//func Benchmark_Verifier(b *testing.B) {
-//	key := "password"
-//	h, _ := KDF(key)
-//	for n := 0; n < b.N; n++ {
-//		hasher.Verify(key, h)
-//	}
-//}
