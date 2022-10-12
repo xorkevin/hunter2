@@ -32,7 +32,7 @@ func (k *EdDSAPubKey) Public() crypto.PublicKey {
 // EdDSAVerifierFromParams creates an ED25519 EdDSA verifier from params
 func EdDSAVerifierFromParams(params string) (VerifierKey, error) {
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
-	if len(b) != 2 || b[0] != SigningAlgRS256 {
+	if len(b) != 2 || b[0] != SigningAlgEdDSA {
 		return nil, fmt.Errorf("%w: Invalid params format", ErrSigningKeyInvalid)
 	}
 	pemBlock, rest := pem.Decode([]byte(b[1]))
