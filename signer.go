@@ -15,6 +15,8 @@ var (
 	ErrSigningKeyNotSupported = errors.New("Signing key not supported")
 	// ErrSigningKeyInvalid is returned when the signing key config is invalid
 	ErrSigningKeyInvalid = errors.New("Invalid signing key")
+	// ErrVerifierKeyInvalid is returned when the verifier key config is invalid
+	ErrVerifierKeyInvalid = errors.New("Invalid verifier key")
 )
 
 type (
@@ -139,6 +141,7 @@ var (
 	DefaultSigningKeyAlgs = signingKeysMap{
 		SigningAlgHS512: HS512FromParams,
 		SigningAlgRS256: RS256FromParams,
+		SigningAlgEdDSA: EdDSAFromParams,
 	}
 
 	// DefaultVerifierKeyAlgs are the default supported signing key algs
