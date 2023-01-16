@@ -43,7 +43,15 @@ func (c *mockCipher) Decrypt(ciphertext string) (string, error) {
 	return string(plaintext), nil
 }
 
-func mockCipherConstructor(params string) (Cipher, error) {
+type (
+	mockBuilder struct{}
+)
+
+func (b mockBuilder) ID() string {
+	return "test"
+}
+
+func (b mockBuilder) Build(params string) (Cipher, error) {
 	if !strings.HasPrefix(params, "$test$") {
 		return nil, kerrors.WithKind(nil, ErrorKeyInvalid, "Invalid key")
 	}
@@ -52,24 +60,23 @@ func mockCipherConstructor(params string) (Cipher, error) {
 	}, nil
 }
 
-func TestDecrypter(t *testing.T) {
+func TestKeyring(t *testing.T) {
 	t.Parallel()
 
 	assert := require.New(t)
 
 	keys := []string{"$test$key1", "$test$key2"}
 
-	decrypter := NewDecrypter()
-	testCipherAlgs := CipherAlgsMap{
-		"test": CipherConstructorFunc(mockCipherConstructor),
-	}
+	decrypter := NewKeyring()
+	testAlgs := AlgsMap{}
+	testAlgs.Register(mockBuilder{})
 
 	ciphers := make([]Cipher, 0, 2)
 	for _, i := range keys {
-		c, err := CipherFromParams(i, testCipherAlgs)
+		c, err := FromParams(i, testAlgs)
 		assert.NoError(err)
 		assert.NotNil(c)
-		decrypter.RegisterCipher(c)
+		decrypter.Register(c)
 		ciphers = append(ciphers, c)
 	}
 

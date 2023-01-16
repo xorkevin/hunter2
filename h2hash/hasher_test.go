@@ -54,7 +54,7 @@ func TestVerifier(t *testing.T) {
 
 	{
 		v := NewVerifier()
-		v.RegisterHash(hasher)
+		v.Register(hasher)
 
 		// success case
 		msghash, err := hasher.Hash(msg)
@@ -71,7 +71,7 @@ func TestVerifier(t *testing.T) {
 	}
 	{
 		v := NewVerifier()
-		v.RegisterHash(hasher)
+		v.Register(hasher)
 
 		// success case
 		msghash, err := hasher.Hash(msg)

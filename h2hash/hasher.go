@@ -55,8 +55,8 @@ func NewVerifier() *Verifier {
 	}
 }
 
-// RegisterHash registers a Hasher
-func (v *Verifier) RegisterHash(hasher Hasher) {
+// Register registers a Hasher
+func (v *Verifier) Register(hasher Hasher) {
 	v.hashers[hasher.ID()] = hasher
 }
 

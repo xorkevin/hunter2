@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	CipherAlgID = "c20p"
+	AlgID = "c20p"
 )
 
 type (
@@ -36,7 +36,7 @@ func NewConfig() (*Config, error) {
 func (c Config) String() string {
 	var b strings.Builder
 	b.WriteString("$")
-	b.WriteString(CipherAlgID)
+	b.WriteString(AlgID)
 	b.WriteString("$")
 	b.WriteString(base64.RawURLEncoding.EncodeToString(c.Key))
 	return b.String()
@@ -48,7 +48,7 @@ func ParseConfig(params string) (*Config, error) {
 		return nil, kerrors.WithKind(nil, h2cipher.ErrorKeyInvalid, "Invalid chacha20-poly1305 key")
 	}
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
-	if len(b) != 2 || b[0] != CipherAlgID {
+	if len(b) != 2 || b[0] != AlgID {
 		return nil, kerrors.WithKind(nil, h2cipher.ErrorKeyInvalid, "Invalid chacha20-poly1305 key")
 	}
 	key, err := base64.RawURLEncoding.DecodeString(b[1])
@@ -69,7 +69,7 @@ type (
 )
 
 // New creates a new chacha20-poly1305 cipher
-func New(config Config) (h2cipher.Cipher, error) {
+func New(config Config) (*Cipher, error) {
 	aead, err := chacha20poly1305.NewX(config.Key)
 	if err != nil {
 		return nil, kerrors.WithMsg(err, "Failed to create chacha20-poly1305 cipher")
@@ -81,12 +81,29 @@ func New(config Config) (h2cipher.Cipher, error) {
 }
 
 // NewFromParams creates a chacha20-poly1305 cipher from params
-func NewFromParams(params string) (h2cipher.Cipher, error) {
+func NewFromParams(params string) (*Cipher, error) {
 	config, err := ParseConfig(params)
 	if err != nil {
 		return nil, err
 	}
 	return New(*config)
+}
+
+type (
+	builder struct{}
+)
+
+func (b builder) ID() string {
+	return AlgID
+}
+
+func (b builder) Build(params string) (h2cipher.Cipher, error) {
+	return NewFromParams(params)
+}
+
+// RegisterAlg registers a cipher alg
+func RegisterAlg(algs h2cipher.Algs) {
+	algs.Register(builder{})
 }
 
 func (c *Cipher) ID() string {
@@ -104,7 +121,7 @@ func (c *Cipher) Encrypt(plaintext string) (string, error) {
 	b.WriteString("$")
 	b.WriteString(c.kid)
 	b.WriteString("$")
-	b.WriteString(CipherAlgID)
+	b.WriteString(AlgID)
 	b.WriteString("$")
 	b.WriteString(base64.RawURLEncoding.EncodeToString(nonce))
 	b.WriteString("$")
@@ -117,7 +134,7 @@ func (c *Cipher) Decrypt(ciphertext string) (string, error) {
 		return "", kerrors.WithKind(nil, h2cipher.ErrorCiphertextInvalid, "Invalid chacha20-poly1305 ciphertext")
 	}
 	b := strings.Split(strings.TrimPrefix(ciphertext, "$"), "$")
-	if len(b) != 4 || b[0] != c.kid || b[1] != CipherAlgID {
+	if len(b) != 4 || b[0] != c.kid || b[1] != AlgID {
 		return "", kerrors.WithKind(nil, h2cipher.ErrorCiphertextInvalid, "Invalid chacha20-poly1305 ciphertext")
 	}
 	nonce, err := base64.RawURLEncoding.DecodeString(b[2])

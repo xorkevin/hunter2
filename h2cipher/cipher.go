@@ -44,31 +44,31 @@ type (
 		Decrypt(ciphertext string) (string, error)
 	}
 
-	// Decrypter decrypts ciphertext
-	Decrypter struct {
+	// Keyring decrypts ciphertext
+	Keyring struct {
 		ciphers map[string]Cipher
 	}
 )
 
-// NewDecrypter creates a new decrypter
-func NewDecrypter() *Decrypter {
-	return &Decrypter{
+// NewKeyring creates a new decrypter
+func NewKeyring() *Keyring {
+	return &Keyring{
 		ciphers: map[string]Cipher{},
 	}
 }
 
-// RegisterCipher registers a Cipher
-func (d *Decrypter) RegisterCipher(cipher Cipher) {
-	d.ciphers[cipher.ID()] = cipher
+// Register registers a Cipher
+func (k *Keyring) Register(cipher Cipher) {
+	k.ciphers[cipher.ID()] = cipher
 }
 
 // Decrypt finds the cipher by id and returns plaintext
-func (d *Decrypter) Decrypt(ciphertext string) (string, error) {
+func (k *Keyring) Decrypt(ciphertext string) (string, error) {
 	if !strings.HasPrefix(ciphertext, "$") {
 		return "", kerrors.WithKind(nil, ErrorCiphertextInvalid, "Invalid ciphertext")
 	}
 	id, _, _ := strings.Cut(strings.TrimPrefix(ciphertext, "$"), "$")
-	cipher, ok := d.ciphers[id]
+	cipher, ok := k.ciphers[id]
 	if !ok {
 		return "", kerrors.WithKind(nil, ErrorNotSupported, fmt.Sprintf("Cipher not registered: %s", id))
 	}
@@ -76,46 +76,46 @@ func (d *Decrypter) Decrypt(ciphertext string) (string, error) {
 }
 
 // Size returns the number of registered ciphers
-func (d *Decrypter) Size() int {
-	return len(d.ciphers)
+func (k *Keyring) Size() int {
+	return len(k.ciphers)
 }
 
 type (
-	// CipherConstructor constructs a new cipher from params
-	CipherConstructor interface {
-		Construct(params string) (Cipher, error)
+	// Builder constructs a new cipher from params
+	Builder interface {
+		ID() string
+		Build(params string) (Cipher, error)
 	}
 
-	CipherConstructorFunc func(params string) (Cipher, error)
-
-	// CipherAlgs are a map of valid ciphers
-	CipherAlgs interface {
-		Get(id string) (CipherConstructor, bool)
+	// Algs are a map of valid ciphers
+	Algs interface {
+		Register(b Builder)
+		Get(id string) (Builder, bool)
 	}
 
-	CipherAlgsMap map[string]CipherConstructor
+	AlgsMap map[string]Builder
 )
 
-func (f CipherConstructorFunc) Construct(params string) (Cipher, error) {
-	return f(params)
+func (m AlgsMap) Register(b Builder) {
+	m[b.ID()] = b
 }
 
-func (c CipherAlgsMap) Get(id string) (CipherConstructor, bool) {
-	a, ok := c[id]
+func (m AlgsMap) Get(id string) (Builder, bool) {
+	a, ok := m[id]
 	return a, ok
 }
 
-// CipherFromParams creates a cipher from params
-func CipherFromParams(params string, ciphers CipherAlgs) (Cipher, error) {
+// FromParams creates a cipher from params
+func FromParams(params string, algs Algs) (Cipher, error) {
 	if !strings.HasPrefix(params, "$") {
 		return nil, kerrors.WithKind(nil, ErrorKeyInvalid, "Invalid cipher key")
 	}
 	id, _, _ := strings.Cut(strings.TrimPrefix(params, "$"), "$")
-	c, ok := ciphers.Get(id)
+	a, ok := algs.Get(id)
 	if !ok {
 		return nil, kerrors.WithKind(nil, ErrorNotSupported, fmt.Sprintf("Cipher not registered: %s", id))
 	}
-	return c.Construct(params)
+	return a.Build(params)
 }
 
 // KeyID computes a key id from params
