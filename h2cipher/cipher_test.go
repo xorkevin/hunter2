@@ -68,7 +68,7 @@ func TestKeyring(t *testing.T) {
 	keys := []string{"$test$key1", "$test$key2"}
 
 	decrypter := NewKeyring()
-	testAlgs := AlgsMap{}
+	testAlgs := NewAlgsMap()
 	testAlgs.Register(mockBuilder{})
 
 	ciphers := make([]Cipher, 0, 2)

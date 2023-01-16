@@ -12,8 +12,6 @@ var (
 	ErrorNotSupported errorNotSupported
 	// ErrorInvalidFormat is returned when the hash format is invalid
 	ErrorInvalidFormat errorInvalidFormat
-	// ErrorParamInvalid is returned when the hash param is invalid
-	ErrorParamInvalid errorParamInvalid
 )
 
 type (
@@ -30,10 +28,6 @@ func (e errorInvalidFormat) Error() string {
 	return "Invalid hash format"
 }
 
-func (e errorParamInvalid) Error() string {
-	return "Hash invalid param"
-}
-
 type (
 	// Hasher is a hash interface
 	Hasher interface {
@@ -43,25 +37,29 @@ type (
 	}
 
 	// Verifier verifies hashes
-	Verifier struct {
+	Verifier interface {
+		Register(hasher Hasher)
+		Verify(msg string, msghash string) (bool, error)
+	}
+
+	VerifierMap struct {
 		hashers map[string]Hasher
 	}
 )
 
-// NewVerifier creates a new verifier
-func NewVerifier() *Verifier {
-	return &Verifier{
+func NewVerifierMap() *VerifierMap {
+	return &VerifierMap{
 		hashers: map[string]Hasher{},
 	}
 }
 
 // Register registers a Hasher
-func (v *Verifier) Register(hasher Hasher) {
+func (v *VerifierMap) Register(hasher Hasher) {
 	v.hashers[hasher.ID()] = hasher
 }
 
 // Verify checks to see if the hash of the given msg matches the provided msghash
-func (v *Verifier) Verify(msg string, msghash string) (bool, error) {
+func (v *VerifierMap) Verify(msg string, msghash string) (bool, error) {
 	if !strings.HasPrefix(msghash, "$") {
 		return false, kerrors.WithKind(nil, ErrorInvalidFormat, "Invalid hash format")
 	}

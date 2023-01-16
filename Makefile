@@ -1,16 +1,23 @@
-.PHONY: test coverage cover
-
 TEST_ARGS?=
 TEST_PACKAGE?=./...
-COVERAGE?=cover.out
+
+COVERAGE_OUT?=cover.out
+COVERAGE_HTML?=coverage.html
+
+COVERAGE_ARGS=-cover -covermode atomic -coverprofile $(COVERAGE_OUT)
+
+.PHONY: test testcover coverage cover
 
 test:
-	go test -race -trimpath -ldflags "-w -s" -cover -covermode atomic -coverprofile $(COVERAGE) $(TEST_ARGS) $(TEST_PACKAGE)
+	go test -trimpath -ldflags "-w -s" -race $(TEST_ARGS) $(TEST_PACKAGE)
+
+testcover:
+	go test -trimpath -ldflags "-w -s" -race $(COVERAGE_ARGS) $(TEST_ARGS) $(TEST_PACKAGE)
 
 coverage:
-	go tool cover -html $(COVERAGE)
+	go tool cover -html $(COVERAGE_OUT) -o $(COVERAGE_HTML)
 
-cover: test coverage
+cover: testcover coverage
 
 .PHONY: fmt vet prepare
 

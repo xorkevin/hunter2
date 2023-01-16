@@ -105,8 +105,8 @@ func (b builder) Build(params string) (h2cipher.Cipher, error) {
 	return NewFromParams(params)
 }
 
-// RegisterAlg registers a cipher alg
-func RegisterAlg(algs h2cipher.Algs) {
+// Register registers a cipher alg
+func Register(algs h2cipher.Algs) {
 	algs.Register(builder{})
 }
 

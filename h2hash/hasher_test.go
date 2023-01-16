@@ -38,7 +38,7 @@ func (h *mockHash) Verify(msg string, msghash string) (bool, error) {
 	}
 	hashval, err := base64.RawURLEncoding.DecodeString(b[1])
 	if err != nil {
-		return false, kerrors.WithKind(err, ErrorParamInvalid, "Invalid hash val")
+		return false, kerrors.WithKind(err, ErrorInvalidFormat, "Invalid hash val")
 	}
 	k := blake2b.Sum512([]byte(msg))
 	return hmac.Equal(k[:], hashval), nil
@@ -53,7 +53,14 @@ func TestVerifier(t *testing.T) {
 	hasher := &mockHash{}
 
 	{
-		v := NewVerifier()
+		v := NewVerifierMap()
+		ok, err := v.Verify("abc", "bogus")
+		assert.False(ok)
+		assert.ErrorIs(err, ErrorInvalidFormat)
+	}
+
+	{
+		v := NewVerifierMap()
 		v.Register(hasher)
 
 		// success case
@@ -67,10 +74,10 @@ func TestVerifier(t *testing.T) {
 		// invalid hashid
 		ok, err = v.Verify(msg, "$bogusid")
 		assert.False(ok, "bogus hashid should fail")
-		assert.Error(err, "bogus hashid should fail")
+		assert.ErrorIs(err, ErrorNotSupported, "bogus hashid should fail")
 	}
 	{
-		v := NewVerifier()
+		v := NewVerifierMap()
 		v.Register(hasher)
 
 		// success case
@@ -84,6 +91,28 @@ func TestVerifier(t *testing.T) {
 		// invalid hashid
 		ok, err = v.Verify(msg, "$bogusid")
 		assert.False(ok, "bogus hashid should fail")
-		assert.Error(err, "bogus hashid should fail")
+		assert.Error(err, ErrorNotSupported, "bogus hashid should fail")
+	}
+}
+
+func TestError(t *testing.T) {
+	t.Parallel()
+
+	assert := require.New(t)
+
+	for _, tc := range []struct {
+		Err    error
+		String string
+	}{
+		{
+			Err:    ErrorNotSupported,
+			String: "Hash not supported",
+		},
+		{
+			Err:    ErrorInvalidFormat,
+			String: "Invalid hash format",
+		},
+	} {
+		assert.Equal(tc.String, tc.Err.Error())
 	}
 }

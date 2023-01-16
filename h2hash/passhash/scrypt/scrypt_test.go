@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"xorkevin.dev/hunter2/h2hash"
 )
 
 func TestHasher(t *testing.T) {
@@ -15,6 +16,8 @@ func TestHasher(t *testing.T) {
 		MemBlocksize:   2,
 		ParallelFactor: 1,
 	})
+
+	assert.Equal(HashID, hasher.ID())
 
 	// success case
 	msghash, err := hasher.Hash(msg)
@@ -31,24 +34,24 @@ func TestHasher(t *testing.T) {
 	// invalid hash format
 	ok, err = hasher.Verify(msg, "")
 	assert.False(ok, "blank hash should fail")
-	assert.Error(err, "blank hash should fail")
+	assert.ErrorIs(err, h2hash.ErrorInvalidFormat, "blank hash should fail")
 	ok, err = hasher.Verify(msg, "$s0")
 	assert.False(ok, "invalid number of hash components should fail")
-	assert.Error(err, "invalid number of hash components should fail")
+	assert.ErrorIs(err, h2hash.ErrorInvalidFormat, "invalid number of hash components should fail")
 
 	// invalid parameters
 	ok, err = hasher.Verify(msg, "$s0$$$")
 	assert.False(ok, "invalid number of parameters should fail")
-	assert.Error(err, "invalid number of parameters should fail")
+	assert.ErrorIs(err, h2hash.ErrorInvalidFormat, "invalid number of parameters should fail")
 	ok, err = hasher.Verify(msg, "$s0$,,$$")
 	assert.False(ok, "invalid parameters should fail")
-	assert.Error(err, "invalid parameters should fail")
+	assert.ErrorIs(err, h2hash.ErrorInvalidFormat, "invalid parameters should fail")
 	ok, err = hasher.Verify(msg, "$s0$0,,$$")
 	assert.False(ok, "invalid parameters should fail")
-	assert.Error(err, "invalid parameters should fail")
+	assert.ErrorIs(err, h2hash.ErrorInvalidFormat, "invalid parameters should fail")
 	ok, err = hasher.Verify(msg, "$s0$0,0,$$")
 	assert.False(ok, "invalid parameters should fail")
-	assert.Error(err, "invalid parameters should fail")
+	assert.ErrorIs(err, h2hash.ErrorInvalidFormat, "invalid parameters should fail")
 	ok, err = hasher.Verify(msg, "$s0$0,0,0$$")
 	assert.False(ok, "invalid parameters should fail")
 	assert.Error(err, "invalid parameters should fail")
@@ -56,12 +59,12 @@ func TestHasher(t *testing.T) {
 	// invalid salt
 	ok, err = hasher.Verify(msg, "$s0$0,0,0$bogus+salt+value$")
 	assert.False(ok, "invalid salt should fail")
-	assert.Error(err, "invalid salt should fail")
+	assert.ErrorIs(err, h2hash.ErrorInvalidFormat, "invalid salt should fail")
 
 	// invalid hash
 	ok, err = hasher.Verify(msg, "$s0$0,0,0$bogussaltvalue$bogus+hash+value")
 	assert.False(ok, "invalid hash should fail")
-	assert.Error(err, "invalid hash should fail")
+	assert.ErrorIs(err, h2hash.ErrorInvalidFormat, "invalid hash should fail")
 
 	// invalid param values
 	ok, err = hasher.Verify(msg, "$s0$0,0,0$bogussaltvalue$bogushashvalue")

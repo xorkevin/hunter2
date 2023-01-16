@@ -93,15 +93,23 @@ type (
 		Get(id string) (Builder, bool)
 	}
 
-	AlgsMap map[string]Builder
+	AlgsMap struct {
+		algs map[string]Builder
+	}
 )
 
-func (m AlgsMap) Register(b Builder) {
-	m[b.ID()] = b
+func NewAlgsMap() *AlgsMap {
+	return &AlgsMap{
+		algs: map[string]Builder{},
+	}
 }
 
-func (m AlgsMap) Get(id string) (Builder, bool) {
-	a, ok := m[id]
+func (m *AlgsMap) Register(b Builder) {
+	m.algs[b.ID()] = b
+}
+
+func (m *AlgsMap) Get(id string) (Builder, bool) {
+	a, ok := m.algs[id]
 	return a, ok
 }
 

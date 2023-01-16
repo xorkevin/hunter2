@@ -28,13 +28,13 @@ func (h *Hasher) ID() string {
 	return HashID
 }
 
-func (h *Hasher) exec(key string) []byte {
-	k := blake2b.Sum512([]byte(key))
+func (h *Hasher) exec(msg string) []byte {
+	k := blake2b.Sum512([]byte(msg))
 	return k[:]
 }
 
-func (h *Hasher) Hash(key string) (string, error) {
-	k := h.exec(key)
+func (h *Hasher) Hash(msg string) (string, error) {
+	k := h.exec(msg)
 
 	var b strings.Builder
 	b.WriteString("$")
@@ -55,7 +55,7 @@ func (h *Hasher) Verify(msg string, msghash string) (bool, error) {
 
 	hashval, err := base64.RawURLEncoding.DecodeString(b[1])
 	if err != nil {
-		return false, kerrors.WithKind(err, h2hash.ErrorParamInvalid, "Invalid hash val")
+		return false, kerrors.WithKind(err, h2hash.ErrorInvalidFormat, "Invalid hash val")
 	}
 	res := h.exec(msg)
 	return hmac.Equal(res, hashval), nil

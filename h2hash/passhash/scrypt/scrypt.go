@@ -41,20 +41,20 @@ func (c *Config) String() string {
 func (c *Config) decodeParams(params string) error {
 	p := strings.Split(params, ",")
 	if len(p) != 3 {
-		return kerrors.WithKind(nil, h2hash.ErrorParamInvalid, "Invalid params format")
+		return kerrors.WithKind(nil, h2hash.ErrorInvalidFormat, "Invalid params format")
 	}
 	var err error
 	c.WorkFactor, err = strconv.Atoi(p[0])
 	if err != nil {
-		return kerrors.WithKind(err, h2hash.ErrorParamInvalid, "Invalid work factor")
+		return kerrors.WithKind(err, h2hash.ErrorInvalidFormat, "Invalid work factor")
 	}
 	c.MemBlocksize, err = strconv.Atoi(p[1])
 	if err != nil {
-		return kerrors.WithKind(err, h2hash.ErrorParamInvalid, "Invalid mem blocksize")
+		return kerrors.WithKind(err, h2hash.ErrorInvalidFormat, "Invalid mem blocksize")
 	}
 	c.ParallelFactor, err = strconv.Atoi(p[2])
 	if err != nil {
-		return kerrors.WithKind(err, h2hash.ErrorParamInvalid, "Invalid parallel factor")
+		return kerrors.WithKind(err, h2hash.ErrorInvalidFormat, "Invalid parallel factor")
 	}
 	return nil
 }
@@ -126,11 +126,11 @@ func (h *Hasher) Verify(msg string, msghash string) (bool, error) {
 	}
 	salt, err := base64.RawURLEncoding.DecodeString(b[2])
 	if err != nil {
-		return false, kerrors.WithKind(err, h2hash.ErrorParamInvalid, "Invalid salt")
+		return false, kerrors.WithKind(err, h2hash.ErrorInvalidFormat, "Invalid salt")
 	}
 	hashval, err := base64.RawURLEncoding.DecodeString(b[3])
 	if err != nil {
-		return false, kerrors.WithKind(err, h2hash.ErrorParamInvalid, "Invalid hash val")
+		return false, kerrors.WithKind(err, h2hash.ErrorInvalidFormat, "Invalid hash val")
 	}
 	res, err := h.exec(msg, salt, len(hashval), config)
 	if err != nil {
