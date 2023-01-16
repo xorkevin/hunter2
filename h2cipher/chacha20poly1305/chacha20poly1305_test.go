@@ -1,4 +1,4 @@
-package hunter2
+package chacha20poly1305
 
 import (
 	"testing"
@@ -6,16 +6,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAESCipher_Encrypt(t *testing.T) {
+func TestCipher_Encrypt(t *testing.T) {
 	t.Parallel()
 
 	assert := require.New(t)
 
-	config, err := NewAESConfig()
+	config, err := NewConfig()
 	assert.NoError(err)
 	assert.NotNil(config)
 	key := config.String()
-	aead, err := AESCipherFromParams(key)
+	aead, err := NewFromParams(key)
 	assert.NoError(err)
 	assert.NotNil(aead)
 

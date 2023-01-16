@@ -36,7 +36,7 @@ func (h *Hasher) exec(key string) []byte {
 func (h *Hasher) Hash(key string) (string, error) {
 	k := h.exec(key)
 
-	b := strings.Builder{}
+	var b strings.Builder
 	b.WriteString("$")
 	b.WriteString(HashID)
 	b.WriteString("$")

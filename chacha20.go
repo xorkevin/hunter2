@@ -6,12 +6,18 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 
 	"golang.org/x/crypto/chacha20"
 	"golang.org/x/crypto/poly1305"
+)
+
+var (
+	ErrCipherKeyInvalid  = errors.New("TODO error")
+	ErrCiphertextInvalid = errors.New("TODO error")
 )
 
 type (

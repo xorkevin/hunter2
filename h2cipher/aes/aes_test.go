@@ -1,4 +1,4 @@
-package hunter2
+package h2cipher
 
 import (
 	"testing"
@@ -6,16 +6,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestChaCha20Poly1305Cipher_Encrypt(t *testing.T) {
+func TestCipher_Encrypt(t *testing.T) {
 	t.Parallel()
 
 	assert := require.New(t)
 
-	config, err := NewChaCha20Poly1305Config()
+	config, err := NewConfig()
 	assert.NoError(err)
 	assert.NotNil(config)
 	key := config.String()
-	aead, err := ChaCha20Poly1305CipherFromParams(key)
+	aead, err := NewFromParams(key)
 	assert.NoError(err)
 	assert.NotNil(aead)
 

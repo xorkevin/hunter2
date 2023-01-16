@@ -99,7 +99,7 @@ func (h *Hasher) Hash(msg string) (string, error) {
 		return "", err
 	}
 
-	b := strings.Builder{}
+	var b strings.Builder
 	b.WriteString("$")
 	b.WriteString(HashID)
 	b.WriteString("$")
