@@ -1,4 +1,4 @@
-package hunter2
+package blake2b
 
 import (
 	"testing"
@@ -6,11 +6,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBlake2bHasher(t *testing.T) {
+func TestHasher(t *testing.T) {
 	assert := require.New(t)
 	key := "password"
 
-	hasher := NewBlake2bHasher()
+	hasher := New()
 
 	// success case
 	hash, err := hasher.Hash(key)
