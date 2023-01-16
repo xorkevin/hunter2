@@ -68,5 +68,9 @@ func (v *VerifierMap) Verify(msg string, msghash string) (bool, error) {
 	if !ok {
 		return false, kerrors.WithKind(nil, ErrorNotSupported, fmt.Sprintf("Hash not registered: %s", id))
 	}
-	return hasher.Verify(msg, msghash)
+	ok, err := hasher.Verify(msg, msghash)
+	if err != nil {
+		return false, kerrors.WithKind(err, ErrorInvalidFormat, "Failed to verify hash")
+	}
+	return ok, nil
 }

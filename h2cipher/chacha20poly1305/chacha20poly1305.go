@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	AlgID = "c20p"
+	CipherID = "c20p"
 )
 
 type (
@@ -36,7 +36,7 @@ func NewConfig() (*Config, error) {
 func (c Config) String() string {
 	var b strings.Builder
 	b.WriteString("$")
-	b.WriteString(AlgID)
+	b.WriteString(CipherID)
 	b.WriteString("$")
 	b.WriteString(base64.RawURLEncoding.EncodeToString(c.Key))
 	return b.String()
@@ -48,7 +48,7 @@ func ParseConfig(params string) (*Config, error) {
 		return nil, kerrors.WithKind(nil, h2cipher.ErrorKeyInvalid, "Invalid chacha20-poly1305 key")
 	}
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
-	if len(b) != 2 || b[0] != AlgID {
+	if len(b) != 2 || b[0] != CipherID {
 		return nil, kerrors.WithKind(nil, h2cipher.ErrorKeyInvalid, "Invalid chacha20-poly1305 key")
 	}
 	key, err := base64.RawURLEncoding.DecodeString(b[1])
@@ -94,7 +94,7 @@ type (
 )
 
 func (b builder) ID() string {
-	return AlgID
+	return CipherID
 }
 
 func (b builder) Build(params string) (h2cipher.Cipher, error) {
@@ -121,7 +121,7 @@ func (c *Cipher) Encrypt(plaintext string) (string, error) {
 	b.WriteString("$")
 	b.WriteString(c.kid)
 	b.WriteString("$")
-	b.WriteString(AlgID)
+	b.WriteString(CipherID)
 	b.WriteString("$")
 	b.WriteString(base64.RawURLEncoding.EncodeToString(nonce))
 	b.WriteString("$")
@@ -134,7 +134,7 @@ func (c *Cipher) Decrypt(ciphertext string) (string, error) {
 		return "", kerrors.WithKind(nil, h2cipher.ErrorCiphertextInvalid, "Invalid chacha20-poly1305 ciphertext")
 	}
 	b := strings.Split(strings.TrimPrefix(ciphertext, "$"), "$")
-	if len(b) != 4 || b[0] != c.kid || b[1] != AlgID {
+	if len(b) != 4 || b[0] != c.kid || b[1] != CipherID {
 		return "", kerrors.WithKind(nil, h2cipher.ErrorCiphertextInvalid, "Invalid chacha20-poly1305 ciphertext")
 	}
 	nonce, err := base64.RawURLEncoding.DecodeString(b[2])
@@ -147,7 +147,7 @@ func (c *Cipher) Decrypt(ciphertext string) (string, error) {
 	}
 	plaintext, err := c.cipher.Open(nil, nonce, ciphertextbytes, nil)
 	if err != nil {
-		return "", kerrors.WithKind(err, h2cipher.ErrorCiphertextInvalid, "Failed to decrypt")
+		return "", kerrors.WithKind(err, h2cipher.ErrorCiphertextInvalid, "Failed to decrypt chacha20-poly1305")
 	}
 	return string(plaintext), nil
 }

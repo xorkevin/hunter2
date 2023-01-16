@@ -20,7 +20,7 @@ type (
 )
 
 // New creates a new blake2b hasher
-func New() h2hash.Hasher {
+func New() *Hasher {
 	return &Hasher{}
 }
 

@@ -72,7 +72,11 @@ func (k *Keyring) Decrypt(ciphertext string) (string, error) {
 	if !ok {
 		return "", kerrors.WithKind(nil, ErrorNotSupported, fmt.Sprintf("Cipher not registered: %s", id))
 	}
-	return cipher.Decrypt(ciphertext)
+	plaintext, err := cipher.Decrypt(ciphertext)
+	if err != nil {
+		return "", kerrors.WithKind(err, ErrorCiphertextInvalid, "Failed to decrypt")
+	}
+	return plaintext, nil
 }
 
 // Size returns the number of registered ciphers

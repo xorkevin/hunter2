@@ -1,4 +1,4 @@
-package hunter2
+package chacha20
 
 import (
 	"bytes"
@@ -7,14 +7,15 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"xorkevin.dev/hunter2/h2streamcipher"
 )
 
-func TestChaCha20Stream_Write(t *testing.T) {
+func TestStream_Write(t *testing.T) {
 	t.Parallel()
 
 	assert := require.New(t)
 
-	config, err := NewChaCha20Config()
+	config, err := NewConfig()
 	assert.NoError(err)
 	assert.NotNil(config)
 	key := config.String()
@@ -35,34 +36,36 @@ func TestChaCha20Stream_Write(t *testing.T) {
 
 			assert := require.New(t)
 
-			stream, err := NewChaCha20Stream(*config)
+			stream, err := NewStream(*config)
 			assert.NoError(err)
-			auth, err := NewPoly1305Auth(*config)
+			mac, err := NewPoly1305Auth(*config)
 			assert.NoError(err)
 
-			encreader := NewEncStreamReader(stream, auth, strings.NewReader(tc.Plaintext))
-			ciphertext := &bytes.Buffer{}
-			_, err = io.Copy(ciphertext, encreader)
+			encreader := h2streamcipher.NewEncStreamReader(stream, mac, strings.NewReader(tc.Plaintext))
+			var ciphertext bytes.Buffer
+			_, err = io.Copy(&ciphertext, encreader)
 			assert.NoError(err)
-			assert.NoError(auth.WriteCount())
-			tag := auth.String()
+			assert.NoError(encreader.Close())
+			tag := encreader.Tag()
 
 			{
-				config, err := ParseChaCha20Config(key)
+				config, err := ParseConfig(key)
 				assert.NoError(err)
 				assert.NotNil(config)
-				stream, err := NewChaCha20Stream(*config)
+				stream, err := NewStream(*config)
 				assert.NoError(err)
-				auth, err := NewPoly1305Auth(*config)
+				mac, err := NewPoly1305Auth(*config)
 				assert.NoError(err)
-				decreader := NewDecStreamReader(stream, auth, ciphertext)
+				decreader := h2streamcipher.NewDecStreamReader(stream, mac, &ciphertext)
 				assert.NoError(err)
 				plaintext := &bytes.Buffer{}
 				_, err = io.Copy(plaintext, decreader)
 				assert.NoError(err)
-				assert.NoError(auth.WriteCount())
+				assert.NoError(decreader.Close())
 				assert.Equal(tc.Plaintext, plaintext.String())
-				assert.NoError(auth.Auth(tag))
+				ok, err := decreader.Verify(tag)
+				assert.NoError(err)
+				assert.True(ok)
 			}
 		})
 	}

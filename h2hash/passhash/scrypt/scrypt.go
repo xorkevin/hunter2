@@ -69,7 +69,7 @@ type (
 )
 
 // New creates a new scrypt hasher
-func New(hashlen, saltlen int, config Config) h2hash.Hasher {
+func New(hashlen, saltlen int, config Config) *Hasher {
 	return &Hasher{
 		hashlen: hashlen,
 		saltlen: saltlen,
