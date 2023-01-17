@@ -32,8 +32,8 @@ type (
 	// Hasher is a hash interface
 	Hasher interface {
 		ID() string
-		Hash(key string, msg string) (string, error)
-		Verify(key string, msg string, msghash string) (bool, error)
+		Hash(key []byte, msg string) (string, error)
+		Verify(key []byte, msg string, msghash string) (bool, error)
 	}
 
 	// Verifier verifies hashes
@@ -59,7 +59,7 @@ func (v *VerifierMap) Register(hasher Hasher) {
 }
 
 // Verify checks to see if the hash of the given msg matches the provided msghash
-func (v *VerifierMap) Verify(key string, msg string, msghash string) (bool, error) {
+func (v *VerifierMap) Verify(key []byte, msg string, msghash string) (bool, error) {
 	if !strings.HasPrefix(msghash, "$") {
 		return false, kerrors.WithKind(nil, ErrorInvalidFormat, "Invalid hash format")
 	}

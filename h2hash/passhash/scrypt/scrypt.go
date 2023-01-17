@@ -89,7 +89,7 @@ func (h *Hasher) exec(msg string, salt []byte, hashLength int, c Config) ([]byte
 	return b, nil
 }
 
-func (h *Hasher) Hash(key string, msg string) (string, error) {
+func (h *Hasher) Hash(key []byte, msg string) (string, error) {
 	salt := make([]byte, h.saltlen)
 	if _, err := rand.Read(salt); err != nil {
 		return "", kerrors.WithMsg(err, "Failed to generate salt")
@@ -111,7 +111,7 @@ func (h *Hasher) Hash(key string, msg string) (string, error) {
 	return b.String(), nil
 }
 
-func (h *Hasher) Verify(key string, msg string, msghash string) (bool, error) {
+func (h *Hasher) Verify(key []byte, msg string, msghash string) (bool, error) {
 	if !strings.HasPrefix(msghash, "$") {
 		return false, kerrors.WithKind(nil, h2hash.ErrorInvalidFormat, "Invalid scrypt hash format")
 	}

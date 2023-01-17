@@ -28,12 +28,12 @@ func (h *Hasher) ID() string {
 	return HashID
 }
 
-func (h *Hasher) exec(key string, msg string) ([]byte, error) {
-	if key == "" {
+func (h *Hasher) exec(key []byte, msg string) ([]byte, error) {
+	if len(key) == 0 {
 		k := blake2b.Sum512([]byte(msg))
 		return k[:], nil
 	}
-	bh, err := blake2b.New512([]byte(key))
+	bh, err := blake2b.New512(key)
 	if err != nil {
 		return nil, kerrors.WithMsg(err, "Failed to create blake2b hash")
 	}
@@ -43,7 +43,7 @@ func (h *Hasher) exec(key string, msg string) ([]byte, error) {
 	return bh.Sum(nil), nil
 }
 
-func (h *Hasher) Hash(key string, msg string) (string, error) {
+func (h *Hasher) Hash(key []byte, msg string) (string, error) {
 	k, err := h.exec(key, msg)
 	if err != nil {
 		return "", err
@@ -57,7 +57,7 @@ func (h *Hasher) Hash(key string, msg string) (string, error) {
 	return b.String(), nil
 }
 
-func (h *Hasher) Verify(key string, msg string, msghash string) (bool, error) {
+func (h *Hasher) Verify(key []byte, msg string, msghash string) (bool, error) {
 	if !strings.HasPrefix(msghash, "$") {
 		return false, kerrors.WithKind(nil, h2hash.ErrorInvalidFormat, "Invalid blake2b hash format")
 	}

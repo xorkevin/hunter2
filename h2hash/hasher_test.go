@@ -20,9 +20,9 @@ func (h *mockHash) ID() string {
 	return "test"
 }
 
-func (h *mockHash) Hash(key string, msg string) (string, error) {
+func (h *mockHash) Hash(key []byte, msg string) (string, error) {
 	var inp []byte
-	inp = append(inp, []byte(key)...)
+	inp = append(inp, key...)
 	inp = append(inp, []byte(msg)...)
 	k := blake2b.Sum512(inp)
 	b := strings.Builder{}
@@ -31,7 +31,7 @@ func (h *mockHash) Hash(key string, msg string) (string, error) {
 	return b.String(), nil
 }
 
-func (h *mockHash) Verify(key string, msg string, msghash string) (bool, error) {
+func (h *mockHash) Verify(key []byte, msg string, msghash string) (bool, error) {
 	if !strings.HasPrefix(msghash, "$") {
 		return false, kerrors.WithKind(nil, ErrorInvalidFormat, "Invalid test hash format")
 	}
@@ -44,7 +44,7 @@ func (h *mockHash) Verify(key string, msg string, msghash string) (bool, error) 
 		return false, kerrors.WithKind(err, ErrorInvalidFormat, "Invalid hash val")
 	}
 	var inp []byte
-	inp = append(inp, []byte(key)...)
+	inp = append(inp, key...)
 	inp = append(inp, []byte(msg)...)
 	k := blake2b.Sum512(inp)
 	return hmac.Equal(k[:], hashval), nil
@@ -60,7 +60,7 @@ func TestVerifier(t *testing.T) {
 
 	{
 		v := NewVerifierMap()
-		ok, err := v.Verify("", "abc", "bogus")
+		ok, err := v.Verify(nil, "abc", "bogus")
 		assert.ErrorIs(err, ErrorInvalidFormat)
 		assert.False(ok)
 	}
@@ -70,20 +70,20 @@ func TestVerifier(t *testing.T) {
 		v.Register(hasher)
 
 		// success case
-		msghash, err := hasher.Hash("", msg)
+		msghash, err := hasher.Hash(nil, msg)
 		assert.NoError(err, "hash should be successful")
 
-		ok, err := v.Verify("", msg, msghash)
+		ok, err := v.Verify(nil, msg, msghash)
 		assert.NoError(err, "msg should be correct")
 		assert.True(ok, "msg should be correct")
 
 		// invalid hashid
-		ok, err = v.Verify("", msg, "$bogusid")
+		ok, err = v.Verify(nil, msg, "$bogusid")
 		assert.ErrorIs(err, ErrorNotSupported, "bogus hashid should fail")
 		assert.False(ok, "bogus hashid should fail")
 
 		// invalid params
-		ok, err = v.Verify("", msg, "$test$$")
+		ok, err = v.Verify(nil, msg, "$test$$")
 		assert.ErrorIs(err, ErrorInvalidFormat)
 		assert.False(ok)
 	}
@@ -92,15 +92,15 @@ func TestVerifier(t *testing.T) {
 		v.Register(hasher)
 
 		// success case
-		msghash, err := hasher.Hash("key", msg)
+		msghash, err := hasher.Hash([]byte("key"), msg)
 		assert.NoError(err)
 
-		ok, err := v.Verify("key", msg, msghash)
+		ok, err := v.Verify([]byte("key"), msg, msghash)
 		assert.NoError(err)
 		assert.True(ok)
 
 		// invalid hashid
-		ok, err = v.Verify("other", msg, msghash)
+		ok, err = v.Verify([]byte("other"), msg, msghash)
 		assert.NoError(err)
 		assert.False(ok)
 	}
