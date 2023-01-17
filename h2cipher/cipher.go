@@ -127,7 +127,11 @@ func FromParams(params string, algs Algs) (Cipher, error) {
 	if !ok {
 		return nil, kerrors.WithKind(nil, ErrorNotSupported, fmt.Sprintf("Cipher not registered: %s", id))
 	}
-	return a.Build(params)
+	c, err := a.Build(params)
+	if err != nil {
+		return nil, kerrors.WithKind(err, ErrorKeyInvalid, "Invalid cipher params")
+	}
+	return c, nil
 }
 
 // KeyID computes a key id from params

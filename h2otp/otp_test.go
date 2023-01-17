@@ -426,7 +426,7 @@ func TestTOTPGenerateSecret(t *testing.T) {
 		Period: 30,
 	})
 	assert.NoError(err)
-	ok, err := TOTPVerify(params, code, DefaultOTPHashes)
+	ok, err := TOTPVerify(params, code, DefaultHashes)
 	assert.NoError(err)
 	assert.True(ok)
 }
