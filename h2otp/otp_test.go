@@ -1,4 +1,4 @@
-package hunter2
+package h2otp
 
 import (
 	"crypto"
@@ -364,7 +364,7 @@ func TestTOTPConfig_String(t *testing.T) {
 			Config: TOTPURI{
 				TOTPConfig: TOTPConfig{
 					Secret: []byte("hello_world"),
-					Alg:    OTPAlgSHA1,
+					Alg:    AlgSHA1,
 					Digits: 6,
 					Period: 30,
 					Leeway: 0,
@@ -379,7 +379,7 @@ func TestTOTPConfig_String(t *testing.T) {
 			Config: TOTPURI{
 				TOTPConfig: TOTPConfig{
 					Secret: []byte("lorem ipsum"),
-					Alg:    OTPAlgSHA256,
+					Alg:    AlgSHA256,
 					Digits: 8,
 					Period: 15,
 					Leeway: 1,
@@ -407,7 +407,7 @@ func TestTOTPGenerateSecret(t *testing.T) {
 	assert := require.New(t)
 	params, _, err := TOTPGenerateSecret(32, TOTPURI{
 		TOTPConfig: TOTPConfig{
-			Alg:    OTPAlgSHA1,
+			Alg:    AlgSHA1,
 			Digits: 6,
 			Period: 30,
 			Leeway: 1,

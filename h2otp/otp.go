@@ -1,4 +1,4 @@
-package hunter2
+package h2otp
 
 import (
 	"crypto"
@@ -7,23 +7,42 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"hash"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
+
+	"xorkevin.dev/kerrors"
 )
 
 var (
-	// ErrOTPInvalidOpt is returned when an invalid opt is passed to otp
-	ErrOTPInvalidOpt = errors.New("OTP invalid opt")
-	// ErrOTPOptUnsupported is returned when an otp opt is unsupported
-	ErrOTPOptUnsupported = errors.New("OTP opt unsupported")
-	// ErrOTPParamInvalid is returned when an otp param string is invalid
-	ErrOTPParamInvalid = errors.New("OTP invalid param")
+	// ErrorInvalidOpt is returned when an invalid opt is passed to otp
+	ErrorInvalidOpt errorInvalidOpt
+	// ErrorOptUnsupported is returned when an otp opt is unsupported
+	ErrorOptUnsupported errorOptUnsupported
+	// ErrorParamInvalid is returned when an otp param string is invalid
+	ErrorParamInvalid errorParamInvalid
 )
+
+type (
+	errorInvalidOpt     struct{}
+	errorOptUnsupported struct{}
+	errorParamInvalid   struct{}
+)
+
+func (e errorInvalidOpt) Error() string {
+	return "Invalid OTP opt"
+}
+
+func (e errorOptUnsupported) Error() string {
+	return "OTP opt unsupported"
+}
+
+func (e errorParamInvalid) Error() string {
+	return "Invalid OTP param"
+}
 
 type (
 	// HashConstructor constructs a new hash
@@ -36,7 +55,7 @@ func HOTP(secret []byte, counter uint64, alg HashConstructor, digits int) (strin
 	binary.BigEndian.PutUint64(text, counter)
 	h := hmac.New(alg, secret)
 	if _, err := h.Write(text); err != nil {
-		return "", fmt.Errorf("Failed to hash counter: %w", err)
+		return "", kerrors.WithMsg(err, "Failed to hash counter")
 	}
 	sum := h.Sum(nil)
 	bin := otpTruncate(sum)
@@ -64,7 +83,7 @@ func formatNumToString(num uint64, digits int) string {
 func GenerateRandomCode(digits int) (string, error) {
 	text := make([]byte, 8)
 	if _, err := rand.Read(text); err != nil {
-		return "", fmt.Errorf("Failed to generate random code: %w", err)
+		return "", kerrors.WithMsg(err, "Failed to generate random code")
 	}
 	num := binary.BigEndian.Uint64(text)
 	return formatNumToString(num, digits), nil
@@ -82,7 +101,7 @@ type (
 // TOTP implements RFC6238
 func TOTP(secret []byte, t uint64, opts TOTPOpts) (string, error) {
 	if opts.Period == 0 {
-		return "", fmt.Errorf("%w: invalid period", ErrOTPInvalidOpt)
+		return "", kerrors.WithKind(nil, ErrorInvalidOpt, "Invalid period")
 	}
 	return HOTP(secret, t/opts.Period, opts.Alg, opts.Digits)
 }
@@ -128,29 +147,29 @@ func (c TOTPConfig) String() string {
 func (c *TOTPConfig) decodeParams(params string) error {
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
 	if len(b) != 3 || b[0] != "totp" {
-		return fmt.Errorf("%w: invalid totp params format", ErrOTPParamInvalid)
+		return kerrors.WithKind(nil, ErrorParamInvalid, "Invalid totp params format")
 	}
 	p := strings.Split(b[1], ",")
 	if len(p) != 4 {
-		return fmt.Errorf("%w: invalid totp params format", ErrOTPParamInvalid)
+		return kerrors.WithKind(nil, ErrorParamInvalid, "Invalid totp params format")
 	}
 	c.Alg = p[0]
 	var err error
 	c.Digits, err = strconv.Atoi(p[1])
 	if err != nil {
-		return fmt.Errorf("%w: invalid digits", ErrOTPParamInvalid)
+		return kerrors.WithKind(err, ErrorParamInvalid, "Invalid digits")
 	}
 	c.Period, err = strconv.ParseUint(p[2], 10, 64)
 	if err != nil {
-		return fmt.Errorf("%w: invalid period", ErrOTPParamInvalid)
+		return kerrors.WithKind(err, ErrorParamInvalid, "Invalid period")
 	}
 	c.Leeway, err = strconv.ParseUint(p[3], 10, 64)
 	if err != nil {
-		return fmt.Errorf("%w: invalid leeway", ErrOTPParamInvalid)
+		return kerrors.WithKind(err, ErrorParamInvalid, "Invalid leeway")
 	}
 	c.Secret, err = base64.RawURLEncoding.DecodeString(b[2])
 	if err != nil {
-		return fmt.Errorf("Invalid secret: %w", err)
+		return kerrors.WithKind(err, ErrorParamInvalid, "Invalid secret")
 	}
 	return nil
 }
@@ -192,10 +211,10 @@ const (
 func TOTPGenerateSecret(secretLength int, opts TOTPURI) (string, string, error) {
 	opts.Secret = make([]byte, secretLength)
 	if _, err := rand.Read(opts.Secret); err != nil {
-		return "", "", fmt.Errorf("Failed to generate totp secret: %w", err)
+		return "", "", kerrors.WithMsg(err, "Failed to generate totp secret")
 	}
 	if opts.Alg == "" {
-		opts.Alg = OTPAlgSHA1
+		opts.Alg = AlgSHA1
 	}
 	if opts.Digits == 0 {
 		opts.Digits = OTPDigitsDefault
@@ -207,8 +226,8 @@ func TOTPGenerateSecret(secretLength int, opts TOTPURI) (string, string, error) 
 }
 
 type (
-	// OTPHashes are a map of valid hashes
-	OTPHashes interface {
+	// Hashes are a map of valid hashes
+	Hashes interface {
 		Get(id string) (HashConstructor, bool)
 	}
 
@@ -220,31 +239,31 @@ func (o otpHashes) Get(id string) (HashConstructor, bool) {
 	return h, ok
 }
 
-// OTP hash algorithms
+// Hash algorithms
 const (
-	OTPAlgSHA1   = "SHA1"
-	OTPAlgSHA256 = "SHA256"
-	OTPAlgSHA512 = "SHA512"
+	AlgSHA1   = "SHA1"
+	AlgSHA256 = "SHA256"
+	AlgSHA512 = "SHA512"
 )
 
 var (
-	// DefaultOTPHashes are the hashes defined by RFC6238
-	DefaultOTPHashes = otpHashes{
-		OTPAlgSHA1:   crypto.SHA1.New,
-		OTPAlgSHA256: crypto.SHA256.New,
-		OTPAlgSHA512: crypto.SHA512.New,
+	// DefaultHashes are the hashes defined by RFC6238
+	DefaultHashes = otpHashes{
+		AlgSHA1:   crypto.SHA1.New,
+		AlgSHA256: crypto.SHA256.New,
+		AlgSHA512: crypto.SHA512.New,
 	}
 )
 
 // TOTPVerify verifies an otp
-func TOTPVerify(params string, code string, hashes OTPHashes) (bool, error) {
+func TOTPVerify(params string, code string, hashes Hashes) (bool, error) {
 	config := TOTPConfig{}
 	if err := config.decodeParams(params); err != nil {
 		return false, err
 	}
 	h, ok := hashes.Get(config.Alg)
 	if !ok {
-		return false, fmt.Errorf("%w: invalid alg", ErrOTPOptUnsupported)
+		return false, kerrors.WithKind(nil, ErrorOptUnsupported, "Invalid alg")
 	}
 	now := uint64(time.Now().Round(0).Unix())
 	opts := TOTPOpts{
