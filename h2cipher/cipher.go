@@ -91,7 +91,7 @@ type (
 		Build(params string) (Cipher, error)
 	}
 
-	// Algs are a map of valid ciphers
+	// Algs are a map of valid cipher algorithms
 	Algs interface {
 		Register(b Builder)
 		Get(id string) (Builder, bool)
@@ -129,7 +129,7 @@ func FromParams(params string, algs Algs) (Cipher, error) {
 	}
 	c, err := a.Build(params)
 	if err != nil {
-		return nil, kerrors.WithKind(err, ErrorKeyInvalid, "Invalid cipher params")
+		return nil, kerrors.WithKind(err, ErrorKeyInvalid, "Invalid cipher key")
 	}
 	return c, nil
 }

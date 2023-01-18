@@ -81,15 +81,15 @@ func (h *Hasher) ID() string {
 	return HashID
 }
 
-func (h *Hasher) exec(msg string, salt []byte, hashLength int, c Config) ([]byte, error) {
-	b, err := scrypt.Key([]byte(msg), salt, c.WorkFactor, c.MemBlocksize, c.ParallelFactor, hashLength)
+func (h *Hasher) exec(msg []byte, salt []byte, hashLength int, c Config) ([]byte, error) {
+	b, err := scrypt.Key(msg, salt, c.WorkFactor, c.MemBlocksize, c.ParallelFactor, hashLength)
 	if err != nil {
 		return nil, kerrors.WithMsg(err, "Failed to hash payload")
 	}
 	return b, nil
 }
 
-func (h *Hasher) Hash(key []byte, msg string) (string, error) {
+func (h *Hasher) Hash(msg []byte) (string, error) {
 	salt := make([]byte, h.saltlen)
 	if _, err := rand.Read(salt); err != nil {
 		return "", kerrors.WithMsg(err, "Failed to generate salt")
@@ -111,7 +111,7 @@ func (h *Hasher) Hash(key []byte, msg string) (string, error) {
 	return b.String(), nil
 }
 
-func (h *Hasher) Verify(key []byte, msg string, msghash string) (bool, error) {
+func (h *Hasher) Verify(msg []byte, msghash string) (bool, error) {
 	if !strings.HasPrefix(msghash, "$") {
 		return false, kerrors.WithKind(nil, h2hash.ErrorInvalidFormat, "Invalid scrypt hash format")
 	}
