@@ -19,28 +19,28 @@ func (c *mockCipher) ID() string {
 	return c.kid
 }
 
-func (c *mockCipher) Encrypt(plaintext string) (string, error) {
+func (c *mockCipher) Encrypt(plaintext []byte) (string, error) {
 	var b strings.Builder
 	b.WriteString("$")
 	b.WriteString(c.kid)
 	b.WriteString("$test$")
-	b.WriteString(base64.RawURLEncoding.EncodeToString([]byte(plaintext)))
+	b.WriteString(base64.RawURLEncoding.EncodeToString(plaintext))
 	return b.String(), nil
 }
 
-func (c *mockCipher) Decrypt(ciphertext string) (string, error) {
+func (c *mockCipher) Decrypt(ciphertext string) ([]byte, error) {
 	if !strings.HasPrefix(ciphertext, "$") {
-		return "", kerrors.WithKind(nil, ErrorCiphertextInvalid, "Invalid ciphertext")
+		return nil, kerrors.WithKind(nil, ErrorCiphertextInvalid, "Invalid ciphertext")
 	}
 	b := strings.Split(strings.TrimPrefix(ciphertext, "$"), "$")
 	if len(b) != 3 || b[0] != c.kid || b[1] != "test" {
-		return "", kerrors.WithKind(nil, ErrorCiphertextInvalid, "Invalid ciphertext")
+		return nil, kerrors.WithKind(nil, ErrorCiphertextInvalid, "Invalid ciphertext")
 	}
 	plaintext, err := base64.RawURLEncoding.DecodeString(b[2])
 	if err != nil {
-		return "", kerrors.WithKind(err, ErrorCiphertextInvalid, "Invalid ciphertext")
+		return nil, kerrors.WithKind(err, ErrorCiphertextInvalid, "Invalid ciphertext")
 	}
-	return string(plaintext), nil
+	return plaintext, nil
 }
 
 type (
@@ -81,17 +81,17 @@ func TestKeyring(t *testing.T) {
 	}
 
 	{
-		ciphertext, err := ciphers[0].Encrypt("hello, world")
+		ciphertext, err := ciphers[0].Encrypt([]byte("hello, world"))
 		assert.NoError(err)
 		plaintext, err := decrypter.Decrypt(ciphertext)
 		assert.NoError(err)
-		assert.Equal("hello, world", plaintext)
+		assert.Equal([]byte("hello, world"), plaintext)
 	}
 	{
-		ciphertext, err := ciphers[1].Encrypt("Lorem ipsum")
+		ciphertext, err := ciphers[1].Encrypt([]byte("Lorem ipsum"))
 		assert.NoError(err)
 		plaintext, err := decrypter.Decrypt(ciphertext)
 		assert.NoError(err)
-		assert.Equal("Lorem ipsum", plaintext)
+		assert.Equal([]byte("Lorem ipsum"), plaintext)
 	}
 }

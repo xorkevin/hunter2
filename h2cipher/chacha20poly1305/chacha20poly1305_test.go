@@ -35,11 +35,11 @@ func TestCipher_Encrypt(t *testing.T) {
 
 			assert := require.New(t)
 
-			ciphertext, err := aead.Encrypt(tc.Plaintext)
+			ciphertext, err := aead.Encrypt([]byte(tc.Plaintext))
 			assert.NoError(err)
 			plaintext, err := aead.Decrypt(ciphertext)
 			assert.NoError(err)
-			assert.Equal(tc.Plaintext, plaintext)
+			assert.Equal([]byte(tc.Plaintext), plaintext)
 		})
 	}
 }

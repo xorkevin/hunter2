@@ -117,12 +117,12 @@ func (c *Cipher) ID() string {
 // Encrypt encrypts using aes
 //
 // Security paramter is 2^32 random nonce uses.
-func (c *Cipher) Encrypt(plaintext string) (string, error) {
+func (c *Cipher) Encrypt(plaintext []byte) (string, error) {
 	nonce := make([]byte, c.cipher.NonceSize())
 	if _, err := rand.Read(nonce); err != nil {
 		return "", kerrors.WithMsg(err, "Failed to create nonce")
 	}
-	ciphertext := c.cipher.Seal(nil, nonce, []byte(plaintext), nil)
+	ciphertext := c.cipher.Seal(nil, nonce, plaintext, nil)
 
 	var b strings.Builder
 	b.WriteString("$")
@@ -136,25 +136,25 @@ func (c *Cipher) Encrypt(plaintext string) (string, error) {
 	return b.String(), nil
 }
 
-func (c *Cipher) Decrypt(ciphertext string) (string, error) {
+func (c *Cipher) Decrypt(ciphertext string) ([]byte, error) {
 	if !strings.HasPrefix(ciphertext, "$") {
-		return "", kerrors.WithKind(nil, h2cipher.ErrorCiphertextInvalid, "Invalid aes ciphertext")
+		return nil, kerrors.WithKind(nil, h2cipher.ErrorCiphertextInvalid, "Invalid aes ciphertext")
 	}
 	b := strings.Split(strings.TrimPrefix(ciphertext, "$"), "$")
 	if len(b) != 4 || b[0] != c.kid || b[1] != CipherID {
-		return "", kerrors.WithKind(nil, h2cipher.ErrorCiphertextInvalid, "Invalid aes ciphertext")
+		return nil, kerrors.WithKind(nil, h2cipher.ErrorCiphertextInvalid, "Invalid aes ciphertext")
 	}
 	nonce, err := base64.RawURLEncoding.DecodeString(b[2])
 	if err != nil {
-		return "", kerrors.WithKind(err, h2cipher.ErrorCiphertextInvalid, "Invalid aes nonce")
+		return nil, kerrors.WithKind(err, h2cipher.ErrorCiphertextInvalid, "Invalid aes nonce")
 	}
 	ciphertextbytes, err := base64.RawURLEncoding.DecodeString(b[3])
 	if err != nil {
-		return "", kerrors.WithKind(err, h2cipher.ErrorCiphertextInvalid, "Invalid aes ciphertext")
+		return nil, kerrors.WithKind(err, h2cipher.ErrorCiphertextInvalid, "Invalid aes ciphertext")
 	}
 	plaintext, err := c.cipher.Open(nil, nonce, ciphertextbytes, nil)
 	if err != nil {
-		return "", kerrors.WithKind(err, h2cipher.ErrorCiphertextInvalid, "Failed to decrypt aes")
+		return nil, kerrors.WithKind(err, h2cipher.ErrorCiphertextInvalid, "Failed to decrypt aes")
 	}
-	return string(plaintext), nil
+	return plaintext, nil
 }

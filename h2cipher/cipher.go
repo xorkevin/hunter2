@@ -40,8 +40,8 @@ type (
 	// Cipher is an encryption interface
 	Cipher interface {
 		ID() string
-		Encrypt(plaintext string) (string, error)
-		Decrypt(ciphertext string) (string, error)
+		Encrypt(plaintext []byte) (string, error)
+		Decrypt(ciphertext string) ([]byte, error)
 	}
 
 	// Keyring decrypts ciphertext
@@ -63,18 +63,18 @@ func (k *Keyring) Register(cipher Cipher) {
 }
 
 // Decrypt finds the cipher by id and returns plaintext
-func (k *Keyring) Decrypt(ciphertext string) (string, error) {
+func (k *Keyring) Decrypt(ciphertext string) ([]byte, error) {
 	if !strings.HasPrefix(ciphertext, "$") {
-		return "", kerrors.WithKind(nil, ErrorCiphertextInvalid, "Invalid ciphertext")
+		return nil, kerrors.WithKind(nil, ErrorCiphertextInvalid, "Invalid ciphertext")
 	}
 	id, _, _ := strings.Cut(strings.TrimPrefix(ciphertext, "$"), "$")
 	cipher, ok := k.ciphers[id]
 	if !ok {
-		return "", kerrors.WithKind(nil, ErrorNotSupported, fmt.Sprintf("Cipher not registered: %s", id))
+		return nil, kerrors.WithKind(nil, ErrorNotSupported, fmt.Sprintf("Cipher not registered: %s", id))
 	}
 	plaintext, err := cipher.Decrypt(ciphertext)
 	if err != nil {
-		return "", kerrors.WithKind(err, ErrorCiphertextInvalid, "Failed to decrypt")
+		return nil, kerrors.WithKind(err, ErrorCiphertextInvalid, "Failed to decrypt")
 	}
 	return plaintext, nil
 }
