@@ -77,7 +77,8 @@ func TestVerifier(t *testing.T) {
 	}
 
 	{
-		v := NewVerifierMap()
+
+		var v Verifier = NewVerifierMap()
 		hasher, err := FromParams("$test$", testAlgs)
 		assert.NoError(err)
 		v.Register(hasher)
