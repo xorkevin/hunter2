@@ -47,7 +47,7 @@ type (
 	// Verifier verifies hashes
 	Verifier interface {
 		Register(hasher Hasher)
-		Verify(msg string, msghash string) (bool, error)
+		Verify(msg []byte, msghash string) (bool, error)
 	}
 
 	VerifierMap struct {
