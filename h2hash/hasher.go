@@ -45,29 +45,24 @@ type (
 	}
 
 	// Verifier verifies hashes
-	Verifier interface {
-		Register(hasher Hasher)
-		Verify(msg []byte, msghash string) (bool, error)
-	}
-
-	VerifierMap struct {
+	Verifier struct {
 		hashers map[string]Hasher
 	}
 )
 
-func NewVerifierMap() *VerifierMap {
-	return &VerifierMap{
+func NewVerifier() *Verifier {
+	return &Verifier{
 		hashers: map[string]Hasher{},
 	}
 }
 
 // Register registers a Hasher
-func (v *VerifierMap) Register(hasher Hasher) {
+func (v *Verifier) Register(hasher Hasher) {
 	v.hashers[hasher.ID()] = hasher
 }
 
 // Verify checks to see if the hash of the given msg matches the provided msghash
-func (v *VerifierMap) Verify(msg []byte, msghash string) (bool, error) {
+func (v *Verifier) Verify(msg []byte, msghash string) (bool, error) {
 	if !strings.HasPrefix(msghash, "$") {
 		return false, kerrors.WithKind(nil, ErrorInvalidFormat, "Invalid hash format")
 	}

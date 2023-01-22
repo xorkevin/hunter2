@@ -70,7 +70,7 @@ func TestVerifier(t *testing.T) {
 	msg := "password"
 
 	{
-		v := NewVerifierMap()
+		v := NewVerifier()
 		ok, err := v.Verify([]byte("abc"), "bogus")
 		assert.ErrorIs(err, ErrorInvalidFormat)
 		assert.False(ok)
@@ -78,7 +78,7 @@ func TestVerifier(t *testing.T) {
 
 	{
 
-		var v Verifier = NewVerifierMap()
+		v := NewVerifier()
 		hasher, err := FromParams("$test$", testAlgs)
 		assert.NoError(err)
 		v.Register(hasher)
