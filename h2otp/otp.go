@@ -130,7 +130,7 @@ type (
 )
 
 func (c TOTPConfig) String() string {
-	b := strings.Builder{}
+	var b strings.Builder
 	b.WriteString("$totp$")
 	b.WriteString(c.Alg)
 	b.WriteString(",")
@@ -174,9 +174,7 @@ func (c *TOTPConfig) decodeParams(params string) error {
 	return nil
 }
 
-var (
-	base32RawEncoding = base32.StdEncoding.WithPadding(base32.NoPadding)
-)
+var base32RawEncoding = base32.StdEncoding.WithPadding(base32.NoPadding)
 
 func (c TOTPURI) String() string {
 	var p string
@@ -246,14 +244,12 @@ const (
 	AlgSHA512 = "SHA512"
 )
 
-var (
-	// DefaultHashes are the hashes defined by RFC6238
-	DefaultHashes = otpHashes{
-		AlgSHA1:   crypto.SHA1.New,
-		AlgSHA256: crypto.SHA256.New,
-		AlgSHA512: crypto.SHA512.New,
-	}
-)
+// DefaultHashes are the hashes defined by RFC6238
+var DefaultHashes = otpHashes{
+	AlgSHA1:   crypto.SHA1.New,
+	AlgSHA256: crypto.SHA256.New,
+	AlgSHA512: crypto.SHA512.New,
+}
 
 // TOTPVerify verifies an otp
 func TOTPVerify(params string, code string, hashes Hashes) (bool, error) {
