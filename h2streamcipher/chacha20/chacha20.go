@@ -44,7 +44,7 @@ func NewConfig() (*Config, error) {
 
 // String returns a chacha20 config as a string
 func (c Config) String() string {
-	b := strings.Builder{}
+	var b strings.Builder
 	b.WriteString("$")
 	b.WriteString(CipherID)
 	b.WriteString("$")
@@ -113,7 +113,7 @@ func NewPoly1305Auth(c Config) (*Poly1305Auth, error) {
 	}, nil
 }
 
-// Write implements io.Writer
+// Write implements [io.Writer]
 func (a *Poly1305Auth) Write(src []byte) (int, error) {
 	if a.closed {
 		return 0, h2streamcipher.ErrorClosed
@@ -161,7 +161,7 @@ func (a *Poly1305Auth) Close() error {
 
 // Tag returns an auth tag
 func (a *Poly1305Auth) Tag() string {
-	b := strings.Builder{}
+	var b strings.Builder
 	b.WriteString("$")
 	b.WriteString(MACID)
 	b.WriteString("$")

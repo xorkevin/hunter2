@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"golang.org/x/crypto/blake2b"
-	"xorkevin.dev/hunter2/h2cipher"
 	"xorkevin.dev/hunter2/h2hash"
 	"xorkevin.dev/kerrors"
 )
@@ -44,15 +43,15 @@ func (c Config) String() string {
 // ParseConfig loads a blake2b key config from params string
 func ParseConfig(params string) (*Config, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, kerrors.WithKind(nil, h2cipher.ErrorKeyInvalid, "Invalid blake2b key")
+		return nil, kerrors.WithKind(nil, h2hash.ErrorKeyInvalid, "Invalid blake2b key")
 	}
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
 	if len(b) != 2 || b[0] != HashID {
-		return nil, kerrors.WithKind(nil, h2cipher.ErrorKeyInvalid, "Invalid blake2b key")
+		return nil, kerrors.WithKind(nil, h2hash.ErrorKeyInvalid, "Invalid blake2b key")
 	}
 	key, err := base64.RawURLEncoding.DecodeString(b[1])
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2cipher.ErrorKeyInvalid, "Invalid blake2b key")
+		return nil, kerrors.WithKind(err, h2hash.ErrorKeyInvalid, "Invalid blake2b key")
 	}
 	return &Config{
 		Key: key,
@@ -100,7 +99,7 @@ func (b builder) Build(params string) (h2hash.Hasher, error) {
 	return NewFromParams(params)
 }
 
-// Register registers a cipher alg
+// Register registers a hash alg
 func Register(algs h2hash.Algs) {
 	algs.Register(builder{})
 }
@@ -165,7 +164,7 @@ func (h *Hasher) Verify(msg []byte, msghash string) (bool, error) {
 
 	hashval, err := base64.RawURLEncoding.DecodeString(hashstr)
 	if err != nil {
-		return false, kerrors.WithKind(err, h2hash.ErrorInvalidFormat, "Invalid hash val")
+		return false, kerrors.WithKind(err, h2hash.ErrorInvalidFormat, "Invalid blake2b hash format")
 	}
 	res, err := h.exec(msg)
 	if err != nil {
