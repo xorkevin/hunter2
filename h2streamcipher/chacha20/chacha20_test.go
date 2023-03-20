@@ -20,6 +20,9 @@ func TestStream_Write(t *testing.T) {
 	assert.NotNil(config)
 	key := config.String()
 
+	algs := h2streamcipher.NewAlgsMap()
+	Register(algs)
+
 	for _, tc := range []struct {
 		Plaintext string
 	}{
@@ -36,9 +39,7 @@ func TestStream_Write(t *testing.T) {
 
 			assert := require.New(t)
 
-			stream, err := NewStream(*config)
-			assert.NoError(err)
-			mac, err := NewPoly1305Auth(*config)
+			stream, mac, err := NewFromParams(key)
 			assert.NoError(err)
 
 			encreader := h2streamcipher.NewEncStreamReader(stream, mac, strings.NewReader(tc.Plaintext))
@@ -49,17 +50,10 @@ func TestStream_Write(t *testing.T) {
 			tag := encreader.Tag()
 
 			{
-				config, err := ParseConfig(key)
+				decreader, err := h2streamcipher.NewDecStreamReaderFromParams(key, algs, &ciphertext)
 				assert.NoError(err)
-				assert.NotNil(config)
-				stream, err := NewStream(*config)
-				assert.NoError(err)
-				mac, err := NewPoly1305Auth(*config)
-				assert.NoError(err)
-				decreader := h2streamcipher.NewDecStreamReader(stream, mac, &ciphertext)
-				assert.NoError(err)
-				plaintext := &bytes.Buffer{}
-				_, err = io.Copy(plaintext, decreader)
+				var plaintext bytes.Buffer
+				_, err = io.Copy(&plaintext, decreader)
 				assert.NoError(err)
 				assert.NoError(decreader.Close())
 				assert.Equal(tc.Plaintext, plaintext.String())

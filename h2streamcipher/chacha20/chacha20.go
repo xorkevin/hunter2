@@ -193,3 +193,42 @@ func ParsePoly1305Tag(tagstr string) ([]byte, error) {
 	}
 	return tag, nil
 }
+
+// NewFromConfig creates a chacha20-poly1305 cipher from config
+func NewFromConfig(config Config) (h2streamcipher.KeyStream, *Poly1305Auth, error) {
+	s, err := NewStream(config)
+	if err != nil {
+		return nil, nil, err
+	}
+	auth, err := NewPoly1305Auth(config)
+	if err != nil {
+		return nil, nil, err
+	}
+	return s, auth, nil
+}
+
+// NewFromParams creates a chacha20-poly1305 cipher from params
+func NewFromParams(params string) (h2streamcipher.KeyStream, *Poly1305Auth, error) {
+	config, err := ParseConfig(params)
+	if err != nil {
+		return nil, nil, err
+	}
+	return NewFromConfig(*config)
+}
+
+type (
+	builder struct{}
+)
+
+func (b builder) ID() string {
+	return CipherID
+}
+
+func (b builder) Build(params string) (h2streamcipher.KeyStream, h2streamcipher.MAC, error) {
+	return NewFromParams(params)
+}
+
+// Register registers a cipher alg
+func Register(algs h2streamcipher.Algs) {
+	algs.Register(builder{})
+}

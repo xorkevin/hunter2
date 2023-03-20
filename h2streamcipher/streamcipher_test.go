@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/blake2b"
+	"xorkevin.dev/kerrors"
 )
 
 type (
@@ -56,8 +57,37 @@ func (m *mockMAC) Verify(tagstr string) (bool, error) {
 	return hmac.Equal(b, tag), nil
 }
 
+type (
+	mockBuilder struct{}
+)
+
+func (b mockBuilder) ID() string {
+	return "test"
+}
+
+func (b mockBuilder) Build(params string) (KeyStream, MAC, error) {
+	if !strings.HasPrefix(params, "$test$") {
+		return nil, nil, kerrors.WithKind(nil, ErrorKeyInvalid, "Invalid key")
+	}
+	key := strings.TrimPrefix(params, "$test$")[0]
+	bh, err := blake2b.New512([]byte{key})
+	if err != nil {
+		return nil, nil, kerrors.WithMsg(err, "Failed to create mac")
+	}
+	stream := &mockStream{
+		key: key,
+	}
+	mac := &mockMAC{
+		h: bh,
+	}
+	return stream, mac, nil
+}
+
 func TestEncDecStreams(t *testing.T) {
 	t.Parallel()
+
+	testAlgs := NewAlgsMap()
+	testAlgs.Register(mockBuilder{})
 
 	for _, tc := range []struct {
 		Plaintext string
@@ -78,7 +108,7 @@ func TestEncDecStreams(t *testing.T) {
 			stream := &mockStream{
 				key: 42,
 			}
-			bh, err := blake2b.New512([]byte("test"))
+			bh, err := blake2b.New512([]byte{42})
 			assert.NoError(err)
 
 			encreader := NewEncStreamReader(stream, &mockMAC{
@@ -91,15 +121,7 @@ func TestEncDecStreams(t *testing.T) {
 			tag := encreader.Tag()
 
 			{
-				stream := &mockStream{
-					key: 42,
-				}
-				bh, err := blake2b.New512([]byte("test"))
-				assert.NoError(err)
-
-				decreader := NewDecStreamReader(stream, &mockMAC{
-					h: bh,
-				}, &ciphertext)
+				decreader, err := NewDecStreamReaderFromParams("$test$*", testAlgs, &ciphertext)
 				assert.NoError(err)
 				var plaintext bytes.Buffer
 				_, err = io.Copy(&plaintext, decreader)

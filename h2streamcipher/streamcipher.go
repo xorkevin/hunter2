@@ -1,12 +1,16 @@
 package h2streamcipher
 
 import (
+	"fmt"
 	"io"
+	"strings"
 
 	"xorkevin.dev/kerrors"
 )
 
 var (
+	// ErrorNotSupported is returned when the cipher is not supported
+	ErrorNotSupported errorNotSupported
 	// ErrorClosed is returned when writing after the cipher is closed
 	ErrorClosed errorClosed
 	// ErrorNotClosed is returned when performing computations prior to closing
@@ -18,11 +22,16 @@ var (
 )
 
 type (
-	errorClosed      struct{}
-	errorNotClosed   struct{}
-	errorKeyInvalid  struct{}
-	errorAuthInvalid struct{}
+	errorNotSupported struct{}
+	errorClosed       struct{}
+	errorNotClosed    struct{}
+	errorKeyInvalid   struct{}
+	errorAuthInvalid  struct{}
 )
+
+func (e errorNotSupported) Error() string {
+	return "Cipher not supported"
+}
 
 func (e errorClosed) Error() string {
 	return "Cipher closed"
@@ -150,4 +159,63 @@ func (r *DecStreamReader) Verify(tag string) (bool, error) {
 		return false, kerrors.WithKind(nil, ErrorAuthInvalid, "Invalid auth tag")
 	}
 	return ok, nil
+}
+
+type (
+	// Builder constructs a new cipher from params
+	Builder interface {
+		ID() string
+		Build(params string) (KeyStream, MAC, error)
+	}
+
+	// Algs are a map of valid cipher algorithms
+	Algs interface {
+		Register(b Builder)
+		Get(id string) (Builder, bool)
+	}
+
+	AlgsMap struct {
+		algs map[string]Builder
+	}
+)
+
+func NewAlgsMap() *AlgsMap {
+	return &AlgsMap{
+		algs: map[string]Builder{},
+	}
+}
+
+func (m *AlgsMap) Register(b Builder) {
+	m.algs[b.ID()] = b
+}
+
+func (m *AlgsMap) Get(id string) (Builder, bool) {
+	a, ok := m.algs[id]
+	return a, ok
+}
+
+// FromParams creates a cipher from params
+func FromParams(params string, algs Algs) (KeyStream, MAC, error) {
+	if !strings.HasPrefix(params, "$") {
+		return nil, nil, kerrors.WithKind(nil, ErrorKeyInvalid, "Invalid cipher key")
+	}
+	id, _, _ := strings.Cut(strings.TrimPrefix(params, "$"), "$")
+	a, ok := algs.Get(id)
+	if !ok {
+		return nil, nil, kerrors.WithKind(nil, ErrorNotSupported, fmt.Sprintf("Cipher not registered: %s", id))
+	}
+	s, mac, err := a.Build(params)
+	if err != nil {
+		return nil, nil, kerrors.WithKind(err, ErrorKeyInvalid, "Invalid cipher key")
+	}
+	return s, mac, nil
+}
+
+// NewDecStreamReaderFromParams creates a dec stream reader from params
+func NewDecStreamReaderFromParams(params string, algs Algs, ciphertext io.Reader) (*DecStreamReader, error) {
+	s, mac, err := FromParams(params, algs)
+	if err != nil {
+		return nil, err
+	}
+	return NewDecStreamReader(s, mac, ciphertext), nil
 }
