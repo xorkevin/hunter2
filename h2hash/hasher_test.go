@@ -22,7 +22,7 @@ func (h *mockHash) ID() string {
 
 func (h *mockHash) Hash(msg []byte) (string, error) {
 	k := blake2b.Sum512(msg)
-	b := strings.Builder{}
+	var b strings.Builder
 	b.WriteString("$test$")
 	b.WriteString(base64.RawURLEncoding.EncodeToString(k[:]))
 	return b.String(), nil

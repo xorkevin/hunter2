@@ -17,7 +17,7 @@ func TestHasher(t *testing.T) {
 	unkeyedHasher := NewHasher(Config{})
 	keyedConfig, err := NewConfig()
 	assert.NoError(err)
-	keyedHasher, err := NewHasherFromParams(keyedConfig.String())
+	keyedHasher, err := h2streamhash.FromParams(keyedConfig.String(), testAlgs)
 	assert.NoError(err)
 
 	verifier := h2streamhash.NewVerifier()

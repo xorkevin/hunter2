@@ -17,8 +17,6 @@ var (
 	ErrorInvalidFormat errorInvalidFormat
 	// ErrorClosed is returned when writing after the hash is closed
 	ErrorClosed errorClosed
-	// ErrorNotClosed is returned when performing computations prior to closing
-	ErrorNotClosed errorNotClosed
 	// ErrorKeyInvalid is returned when the hash key config is invalid
 	ErrorKeyInvalid errorKeyInvalid
 )
@@ -27,7 +25,6 @@ type (
 	errorNotSupported  struct{}
 	errorInvalidFormat struct{}
 	errorClosed        struct{}
-	errorNotClosed     struct{}
 	errorKeyInvalid    struct{}
 )
 
@@ -41,10 +38,6 @@ func (e errorInvalidFormat) Error() string {
 
 func (e errorClosed) Error() string {
 	return "Hash closed"
-}
-
-func (e errorNotClosed) Error() string {
-	return "Hash not closed"
 }
 
 func (e errorKeyInvalid) Error() string {
