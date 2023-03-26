@@ -57,19 +57,19 @@ func (c Config) String() string {
 // ParseConfig loads a chacha20 config from params string
 func ParseConfig(params string) (*Config, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, kerrors.WithKind(nil, h2streamcipher.ErrorKeyInvalid, "Invalid chacha20 key")
+		return nil, kerrors.WithKind(nil, h2streamcipher.ErrKeyInvalid, "Invalid chacha20 key")
 	}
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
 	if len(b) != 3 || b[0] != CipherID {
-		return nil, kerrors.WithKind(nil, h2streamcipher.ErrorKeyInvalid, "Invalid chacha20 key")
+		return nil, kerrors.WithKind(nil, h2streamcipher.ErrKeyInvalid, "Invalid chacha20 key")
 	}
 	key, err := base64.RawURLEncoding.DecodeString(b[1])
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2streamcipher.ErrorKeyInvalid, "Invalid chacha20 key")
+		return nil, kerrors.WithKind(err, h2streamcipher.ErrKeyInvalid, "Invalid chacha20 key")
 	}
 	nonce, err := base64.RawURLEncoding.DecodeString(b[2])
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2streamcipher.ErrorKeyInvalid, "Invalid chacha20 nonce")
+		return nil, kerrors.WithKind(err, h2streamcipher.ErrKeyInvalid, "Invalid chacha20 nonce")
 	}
 	return &Config{
 		Key:   key,
@@ -116,7 +116,7 @@ func NewPoly1305Auth(c Config) (*Poly1305Auth, error) {
 // Write implements [io.Writer]
 func (a *Poly1305Auth) Write(src []byte) (int, error) {
 	if a.closed {
-		return 0, h2streamcipher.ErrorClosed
+		return 0, h2streamcipher.ErrClosed
 	}
 	n, err := a.mac.Write(src)
 	if err != nil {
@@ -181,15 +181,15 @@ func (a *Poly1305Auth) Verify(tagstr string) (bool, error) {
 // ParsePoly1305Tag loads a poly1305 tag from string
 func ParsePoly1305Tag(tagstr string) ([]byte, error) {
 	if !strings.HasPrefix(tagstr, "$") {
-		return nil, kerrors.WithKind(nil, h2streamcipher.ErrorAuthInvalid, "Invalid poly1305 auth tag format")
+		return nil, kerrors.WithKind(nil, h2streamcipher.ErrAuthInvalid, "Invalid poly1305 auth tag format")
 	}
 	b := strings.Split(strings.TrimPrefix(tagstr, "$"), "$")
 	if len(b) != 2 || b[0] != MACID {
-		return nil, kerrors.WithKind(nil, h2streamcipher.ErrorAuthInvalid, "Invalid poly1305 auth tag format")
+		return nil, kerrors.WithKind(nil, h2streamcipher.ErrAuthInvalid, "Invalid poly1305 auth tag format")
 	}
 	tag, err := base64.RawURLEncoding.DecodeString(b[1])
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2streamcipher.ErrorAuthInvalid, "Invalid poly1305 auth tag")
+		return nil, kerrors.WithKind(err, h2streamcipher.ErrAuthInvalid, "Invalid poly1305 auth tag")
 	}
 	return tag, nil
 }

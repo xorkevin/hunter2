@@ -67,7 +67,7 @@ func (b mockBuilder) ID() string {
 
 func (b mockBuilder) Build(params string) (KeyStream, MAC, error) {
 	if !strings.HasPrefix(params, "$test$") {
-		return nil, nil, kerrors.WithKind(nil, ErrorKeyInvalid, "Invalid key")
+		return nil, nil, kerrors.WithKind(nil, ErrKeyInvalid, "Invalid key")
 	}
 	key := strings.TrimPrefix(params, "$test$")[0]
 	bh, err := blake2b.New512([]byte{key})

@@ -50,23 +50,23 @@ func (c Config) String() (string, error) {
 
 func ParseConfig(params string) (*Config, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, kerrors.WithKind(nil, h2signer.ErrorSigningKeyInvalid, "Invalid ed25519 key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid ed25519 key")
 	}
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
 	if len(b) != 2 || b[0] != SigID {
-		return nil, kerrors.WithKind(nil, h2signer.ErrorSigningKeyInvalid, "Invalid ed25519 key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid ed25519 key")
 	}
 	pemBlock, rest := pem.Decode([]byte(b[1]))
 	if pemBlock == nil || pemBlock.Type != h2signer.PEMBlockTypePrivateKey || len(rest) != 0 {
-		return nil, kerrors.WithKind(nil, h2signer.ErrorSigningKeyInvalid, "Invalid ed25519 key pem")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid ed25519 key pem")
 	}
 	rawKey, err := x509.ParsePKCS8PrivateKey(pemBlock.Bytes)
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2signer.ErrorSigningKeyInvalid, "Invalid pkcs8 ed25519 key")
+		return nil, kerrors.WithKind(err, h2signer.ErrSigningKeyInvalid, "Invalid pkcs8 ed25519 key")
 	}
 	key, ok := rawKey.(ed25519.PrivateKey)
 	if !ok {
-		return nil, kerrors.WithKind(nil, h2signer.ErrorSigningKeyInvalid, "Invalid pkcs8 ed25519 key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid pkcs8 ed25519 key")
 	}
 	return &Config{
 		Key: key,
@@ -144,23 +144,23 @@ func (c PubConfig) String() (string, error) {
 
 func ParsePubConfig(params string) (*PubConfig, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, kerrors.WithKind(nil, h2signer.ErrorVerifierKeyInvalid, "Invalid ed25519 public key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrVerifierKeyInvalid, "Invalid ed25519 public key")
 	}
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
 	if len(b) != 2 || b[0] != SigID {
-		return nil, kerrors.WithKind(nil, h2signer.ErrorVerifierKeyInvalid, "Invalid ed25519 public key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrVerifierKeyInvalid, "Invalid ed25519 public key")
 	}
 	pemBlock, rest := pem.Decode([]byte(b[1]))
 	if pemBlock == nil || pemBlock.Type != h2signer.PEMBlockTypePublicKey || len(rest) != 0 {
-		return nil, kerrors.WithKind(nil, h2signer.ErrorSigningKeyInvalid, "Invalid ed25519 public key pem")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid ed25519 public key pem")
 	}
 	rawKey, err := x509.ParsePKIXPublicKey(pemBlock.Bytes)
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2signer.ErrorSigningKeyInvalid, "Invalid pkix ed25519 public key")
+		return nil, kerrors.WithKind(err, h2signer.ErrSigningKeyInvalid, "Invalid pkix ed25519 public key")
 	}
 	pub, ok := rawKey.(ed25519.PublicKey)
 	if !ok {
-		return nil, kerrors.WithKind(nil, h2signer.ErrorSigningKeyInvalid, "Invalid pkix ed25519 public key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid pkix ed25519 public key")
 	}
 	return &PubConfig{
 		Pub: pub,

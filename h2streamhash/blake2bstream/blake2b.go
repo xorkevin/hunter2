@@ -46,15 +46,15 @@ func (c Config) String() string {
 // ParseConfig loads a blake2b key config from params string
 func ParseConfig(params string) (*Config, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, kerrors.WithKind(nil, h2streamhash.ErrorKeyInvalid, "Invalid blake2b key")
+		return nil, kerrors.WithKind(nil, h2streamhash.ErrKeyInvalid, "Invalid blake2b key")
 	}
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
 	if len(b) != 2 || b[0] != HashID {
-		return nil, kerrors.WithKind(nil, h2streamhash.ErrorKeyInvalid, "Invalid blake2b key")
+		return nil, kerrors.WithKind(nil, h2streamhash.ErrKeyInvalid, "Invalid blake2b key")
 	}
 	key, err := base64.RawURLEncoding.DecodeString(b[1])
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2streamhash.ErrorKeyInvalid, "Invalid blake2b key")
+		return nil, kerrors.WithKind(err, h2streamhash.ErrKeyInvalid, "Invalid blake2b key")
 	}
 	return &Config{
 		Key: key,
@@ -92,7 +92,7 @@ func NewHash(config Config) (*Hash, error) {
 // Write implements [io.Writer]
 func (h *Hash) Write(src []byte) (int, error) {
 	if h.closed {
-		return 0, h2streamhash.ErrorClosed
+		return 0, h2streamhash.ErrClosed
 	}
 	n, err := h.hash.Write(src)
 	if err != nil {
@@ -151,24 +151,24 @@ func (h *Hash) Sum() string {
 
 func (h *Hash) Verify(checksum string) (bool, error) {
 	if !strings.HasPrefix(checksum, "$") {
-		return false, kerrors.WithKind(nil, h2streamhash.ErrorInvalidFormat, "Invalid blake2b checksum format")
+		return false, kerrors.WithKind(nil, h2streamhash.ErrInvalidFormat, "Invalid blake2b checksum format")
 	}
 	b := strings.Split(strings.TrimPrefix(checksum, "$"), "$")
 	var hashstr string
 	if h.kid != "" {
 		if len(b) != 3 || b[0] != h.kid || b[1] != HashID {
-			return false, kerrors.WithKind(nil, h2streamhash.ErrorInvalidFormat, "Invalid blake2b keyed checksum format")
+			return false, kerrors.WithKind(nil, h2streamhash.ErrInvalidFormat, "Invalid blake2b keyed checksum format")
 		}
 		hashstr = b[2]
 	} else {
 		if len(b) != 2 || b[0] != HashID {
-			return false, kerrors.WithKind(nil, h2streamhash.ErrorInvalidFormat, "Invalid blake2b checksum format")
+			return false, kerrors.WithKind(nil, h2streamhash.ErrInvalidFormat, "Invalid blake2b checksum format")
 		}
 		hashstr = b[1]
 	}
 	hashval, err := base64.RawURLEncoding.DecodeString(hashstr)
 	if err != nil {
-		return false, kerrors.WithKind(err, h2streamhash.ErrorInvalidFormat, "Invalid blake2b checksum format")
+		return false, kerrors.WithKind(err, h2streamhash.ErrInvalidFormat, "Invalid blake2b checksum format")
 	}
 	return hmac.Equal(h.hash.Sum(nil), hashval), nil
 }
@@ -234,16 +234,16 @@ func (h *Hasher) Hash() (h2streamhash.Hash, error) {
 
 func (h *Hasher) Verify(checksum string) (h2streamhash.Hash, error) {
 	if !strings.HasPrefix(checksum, "$") {
-		return nil, kerrors.WithKind(nil, h2streamhash.ErrorInvalidFormat, "Invalid blake2b checksum format")
+		return nil, kerrors.WithKind(nil, h2streamhash.ErrInvalidFormat, "Invalid blake2b checksum format")
 	}
 	b := strings.Split(strings.TrimPrefix(checksum, "$"), "$")
 	if h.kid != "" {
 		if len(b) != 3 || b[0] != h.kid || b[1] != HashID {
-			return nil, kerrors.WithKind(nil, h2streamhash.ErrorInvalidFormat, "Invalid blake2b keyed checksum format")
+			return nil, kerrors.WithKind(nil, h2streamhash.ErrInvalidFormat, "Invalid blake2b keyed checksum format")
 		}
 	} else {
 		if len(b) != 2 || b[0] != HashID {
-			return nil, kerrors.WithKind(nil, h2streamhash.ErrorInvalidFormat, "Invalid blake2b checksum format")
+			return nil, kerrors.WithKind(nil, h2streamhash.ErrInvalidFormat, "Invalid blake2b checksum format")
 		}
 	}
 	return h.Hash()

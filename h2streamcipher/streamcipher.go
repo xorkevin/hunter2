@@ -9,43 +9,43 @@ import (
 )
 
 var (
-	// ErrorNotSupported is returned when the cipher is not supported
-	ErrorNotSupported errorNotSupported
-	// ErrorClosed is returned when writing after the cipher is closed
-	ErrorClosed errorClosed
-	// ErrorNotClosed is returned when performing computations prior to closing
-	ErrorNotClosed errorNotClosed
-	// ErrorKeyInvalid is returned when the cipher key config is invalid
-	ErrorKeyInvalid errorKeyInvalid
-	// ErrorAuthInvalid is returned when the cipher auth tag is invalid
-	ErrorAuthInvalid errorAuthInvalid
+	// ErrNotSupported is returned when the cipher is not supported
+	ErrNotSupported errNotSupported
+	// ErrClosed is returned when writing after the cipher is closed
+	ErrClosed errClosed
+	// ErrNotClosed is returned when performing computations prior to closing
+	ErrNotClosed errNotClosed
+	// ErrKeyInvalid is returned when the cipher key config is invalid
+	ErrKeyInvalid errKeyInvalid
+	// ErrAuthInvalid is returned when the cipher auth tag is invalid
+	ErrAuthInvalid errAuthInvalid
 )
 
 type (
-	errorNotSupported struct{}
-	errorClosed       struct{}
-	errorNotClosed    struct{}
-	errorKeyInvalid   struct{}
-	errorAuthInvalid  struct{}
+	errNotSupported struct{}
+	errClosed       struct{}
+	errNotClosed    struct{}
+	errKeyInvalid   struct{}
+	errAuthInvalid  struct{}
 )
 
-func (e errorNotSupported) Error() string {
+func (e errNotSupported) Error() string {
 	return "Cipher not supported"
 }
 
-func (e errorClosed) Error() string {
+func (e errClosed) Error() string {
 	return "Cipher closed"
 }
 
-func (e errorNotClosed) Error() string {
+func (e errNotClosed) Error() string {
 	return "Cipher not closed"
 }
 
-func (e errorKeyInvalid) Error() string {
+func (e errKeyInvalid) Error() string {
 	return "Invalid cipher key"
 }
 
-func (e errorAuthInvalid) Error() string {
+func (e errAuthInvalid) Error() string {
 	return "Invalid auth tag"
 }
 
@@ -152,11 +152,11 @@ func (r *DecStreamReader) Close() error {
 
 func (r *DecStreamReader) Verify(tag string) (bool, error) {
 	if !r.closed {
-		return false, kerrors.WithKind(nil, ErrorNotClosed, "Cipher not closed")
+		return false, kerrors.WithKind(nil, ErrNotClosed, "Cipher not closed")
 	}
 	ok, err := r.MAC.Verify(tag)
 	if err != nil {
-		return false, kerrors.WithKind(nil, ErrorAuthInvalid, "Invalid auth tag")
+		return false, kerrors.WithKind(nil, ErrAuthInvalid, "Invalid auth tag")
 	}
 	return ok, nil
 }
@@ -197,16 +197,16 @@ func (m *AlgsMap) Get(id string) (Builder, bool) {
 // FromParams creates a cipher from params
 func FromParams(params string, algs Algs) (KeyStream, MAC, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, nil, kerrors.WithKind(nil, ErrorKeyInvalid, "Invalid cipher key")
+		return nil, nil, kerrors.WithKind(nil, ErrKeyInvalid, "Invalid cipher key")
 	}
 	id, _, _ := strings.Cut(strings.TrimPrefix(params, "$"), "$")
 	a, ok := algs.Get(id)
 	if !ok {
-		return nil, nil, kerrors.WithKind(nil, ErrorNotSupported, fmt.Sprintf("Cipher not registered: %s", id))
+		return nil, nil, kerrors.WithKind(nil, ErrNotSupported, fmt.Sprintf("Cipher not registered: %s", id))
 	}
 	s, mac, err := a.Build(params)
 	if err != nil {
-		return nil, nil, kerrors.WithKind(err, ErrorKeyInvalid, "Invalid cipher key")
+		return nil, nil, kerrors.WithKind(err, ErrKeyInvalid, "Invalid cipher key")
 	}
 	return s, mac, nil
 }

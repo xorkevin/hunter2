@@ -45,15 +45,15 @@ func (c Config) String() string {
 // ParseConfig loads a chacha20-poly1305 config from params string
 func ParseConfig(params string) (*Config, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, kerrors.WithKind(nil, h2cipher.ErrorKeyInvalid, "Invalid chacha20-poly1305 key")
+		return nil, kerrors.WithKind(nil, h2cipher.ErrKeyInvalid, "Invalid chacha20-poly1305 key")
 	}
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
 	if len(b) != 2 || b[0] != CipherID {
-		return nil, kerrors.WithKind(nil, h2cipher.ErrorKeyInvalid, "Invalid chacha20-poly1305 key")
+		return nil, kerrors.WithKind(nil, h2cipher.ErrKeyInvalid, "Invalid chacha20-poly1305 key")
 	}
 	key, err := base64.RawURLEncoding.DecodeString(b[1])
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2cipher.ErrorKeyInvalid, "Invalid chacha20-poly1305 key")
+		return nil, kerrors.WithKind(err, h2cipher.ErrKeyInvalid, "Invalid chacha20-poly1305 key")
 	}
 	return &Config{
 		Key: key,
@@ -131,23 +131,23 @@ func (c *Cipher) Encrypt(plaintext []byte) (string, error) {
 
 func (c *Cipher) Decrypt(ciphertext string) ([]byte, error) {
 	if !strings.HasPrefix(ciphertext, "$") {
-		return nil, kerrors.WithKind(nil, h2cipher.ErrorCiphertextInvalid, "Invalid chacha20-poly1305 ciphertext")
+		return nil, kerrors.WithKind(nil, h2cipher.ErrCiphertextInvalid, "Invalid chacha20-poly1305 ciphertext")
 	}
 	b := strings.Split(strings.TrimPrefix(ciphertext, "$"), "$")
 	if len(b) != 4 || b[0] != c.kid || b[1] != CipherID {
-		return nil, kerrors.WithKind(nil, h2cipher.ErrorCiphertextInvalid, "Invalid chacha20-poly1305 ciphertext")
+		return nil, kerrors.WithKind(nil, h2cipher.ErrCiphertextInvalid, "Invalid chacha20-poly1305 ciphertext")
 	}
 	nonce, err := base64.RawURLEncoding.DecodeString(b[2])
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2cipher.ErrorCiphertextInvalid, "Invalid chacha20-poly1305 nonce")
+		return nil, kerrors.WithKind(err, h2cipher.ErrCiphertextInvalid, "Invalid chacha20-poly1305 nonce")
 	}
 	ciphertextbytes, err := base64.RawURLEncoding.DecodeString(b[3])
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2cipher.ErrorCiphertextInvalid, "Invalid chacha20-poly1305 ciphertext")
+		return nil, kerrors.WithKind(err, h2cipher.ErrCiphertextInvalid, "Invalid chacha20-poly1305 ciphertext")
 	}
 	plaintext, err := c.cipher.Open(nil, nonce, ciphertextbytes, nil)
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2cipher.ErrorCiphertextInvalid, "Failed to decrypt chacha20-poly1305")
+		return nil, kerrors.WithKind(err, h2cipher.ErrCiphertextInvalid, "Failed to decrypt chacha20-poly1305")
 	}
 	return plaintext, nil
 }

@@ -37,15 +37,15 @@ func (m *mockHash) Sum() string {
 
 func (m *mockHash) Verify(checksum string) (bool, error) {
 	if !strings.HasPrefix(checksum, "$") {
-		return false, kerrors.WithKind(nil, ErrorInvalidFormat, "Invalid test hash format")
+		return false, kerrors.WithKind(nil, ErrInvalidFormat, "Invalid test hash format")
 	}
 	b := strings.Split(strings.TrimPrefix(checksum, "$"), "$")
 	if len(b) != 2 || b[0] != "test" {
-		return false, kerrors.WithKind(nil, ErrorInvalidFormat, "Invalid test hash format")
+		return false, kerrors.WithKind(nil, ErrInvalidFormat, "Invalid test hash format")
 	}
 	hashval, err := base64.RawURLEncoding.DecodeString(b[1])
 	if err != nil {
-		return false, kerrors.WithKind(err, ErrorInvalidFormat, "Invalid hash val")
+		return false, kerrors.WithKind(err, ErrInvalidFormat, "Invalid hash val")
 	}
 	return hmac.Equal(m.h.Sum(nil), hashval), nil
 }
@@ -83,7 +83,7 @@ func (b mockBuilder) ID() string {
 
 func (b mockBuilder) Build(params string) (Hasher, error) {
 	if params != "$test$" {
-		return nil, kerrors.WithKind(nil, ErrorKeyInvalid, "Invalid key")
+		return nil, kerrors.WithKind(nil, ErrKeyInvalid, "Invalid key")
 	}
 	return &mockHasher{}, nil
 }
@@ -139,19 +139,19 @@ func TestError(t *testing.T) {
 		String string
 	}{
 		{
-			Err:    ErrorNotSupported,
+			Err:    ErrNotSupported,
 			String: "Hash not supported",
 		},
 		{
-			Err:    ErrorInvalidFormat,
+			Err:    ErrInvalidFormat,
 			String: "Invalid checksum format",
 		},
 		{
-			Err:    ErrorClosed,
+			Err:    ErrClosed,
 			String: "Hash closed",
 		},
 		{
-			Err:    ErrorKeyInvalid,
+			Err:    ErrKeyInvalid,
 			String: "Invalid hash key",
 		},
 	} {

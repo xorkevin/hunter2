@@ -41,15 +41,15 @@ func (c Config) String() string {
 // ParseConfig loads an HS512 config from params string
 func ParseConfig(params string) (*Config, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, kerrors.WithKind(nil, h2signer.ErrorSigningKeyInvalid, "Invalid hs512 key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid hs512 key")
 	}
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
 	if len(b) != 2 || b[0] != SigID {
-		return nil, kerrors.WithKind(nil, h2signer.ErrorSigningKeyInvalid, "Invalid hs512 key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid hs512 key")
 	}
 	key, err := base64.RawURLEncoding.DecodeString(b[1])
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2signer.ErrorSigningKeyInvalid, "Invalid hs512 key")
+		return nil, kerrors.WithKind(err, h2signer.ErrSigningKeyInvalid, "Invalid hs512 key")
 	}
 	return &Config{
 		Key: key,

@@ -10,29 +10,29 @@ import (
 )
 
 var (
-	// ErrorNotSupported is returned when t he signing key is not supported
-	ErrorNotSupported errorNotSupported
-	// ErrorSigningKeyInvalid is returned when the signing key config is invalid
-	ErrorSigningKeyInvalid errorSigningKeyInvalid
+	// ErrNotSupported is returned when t he signing key is not supported
+	ErrNotSupported errNotSupported
+	// ErrSigningKeyInvalid is returned when the signing key config is invalid
+	ErrSigningKeyInvalid errSigningKeyInvalid
 	// ErrVerifierKeyInvalid is returned when the verifier key config is invalid
-	ErrorVerifierKeyInvalid errorVerifierKeyInvalid
+	ErrVerifierKeyInvalid errVerifierKeyInvalid
 )
 
 type (
-	errorNotSupported       struct{}
-	errorSigningKeyInvalid  struct{}
-	errorVerifierKeyInvalid struct{}
+	errNotSupported       struct{}
+	errSigningKeyInvalid  struct{}
+	errVerifierKeyInvalid struct{}
 )
 
-func (e errorNotSupported) Error() string {
+func (e errNotSupported) Error() string {
 	return "Signing key not supported"
 }
 
-func (e errorSigningKeyInvalid) Error() string {
+func (e errSigningKeyInvalid) Error() string {
 	return "Invalid signing key"
 }
 
-func (e errorVerifierKeyInvalid) Error() string {
+func (e errVerifierKeyInvalid) Error() string {
 	return "Invalid verifier key"
 }
 
@@ -181,16 +181,16 @@ const (
 // SigningKeyFromParams creates a cipher from params
 func SigningKeyFromParams(params string, signingKeys SigningKeyAlgs) (SigningKey, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, kerrors.WithKind(nil, ErrorSigningKeyInvalid, "Invalid signing key")
+		return nil, kerrors.WithKind(nil, ErrSigningKeyInvalid, "Invalid signing key")
 	}
 	id, _, _ := strings.Cut(strings.TrimPrefix(params, "$"), "$")
 	s, ok := signingKeys.Get(id)
 	if !ok {
-		return nil, kerrors.WithKind(nil, ErrorNotSupported, fmt.Sprintf("Signing key not registered: %s", id))
+		return nil, kerrors.WithKind(nil, ErrNotSupported, fmt.Sprintf("Signing key not registered: %s", id))
 	}
 	k, err := s.Build(params)
 	if err != nil {
-		return nil, kerrors.WithKind(err, ErrorSigningKeyInvalid, "Invalid signing key")
+		return nil, kerrors.WithKind(err, ErrSigningKeyInvalid, "Invalid signing key")
 	}
 	return k, nil
 }
@@ -198,16 +198,16 @@ func SigningKeyFromParams(params string, signingKeys SigningKeyAlgs) (SigningKey
 // VerifierKeyFromParams creates a verifier from params
 func VerifierKeyFromParams(params string, verifierKeys VerifierKeyAlgs) (VerifierKey, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, kerrors.WithKind(nil, ErrorVerifierKeyInvalid, "Invalid verifier key")
+		return nil, kerrors.WithKind(nil, ErrVerifierKeyInvalid, "Invalid verifier key")
 	}
 	id, _, _ := strings.Cut(strings.TrimPrefix(params, "$"), "$")
 	s, ok := verifierKeys.Get(id)
 	if !ok {
-		return nil, kerrors.WithKind(nil, ErrorNotSupported, fmt.Sprintf("Verifier key not registered: %s", id))
+		return nil, kerrors.WithKind(nil, ErrNotSupported, fmt.Sprintf("Verifier key not registered: %s", id))
 	}
 	k, err := s.Build(params)
 	if err != nil {
-		return nil, kerrors.WithKind(err, ErrorVerifierKeyInvalid, "Invalid verifier key")
+		return nil, kerrors.WithKind(err, ErrVerifierKeyInvalid, "Invalid verifier key")
 	}
 	return k, nil
 }

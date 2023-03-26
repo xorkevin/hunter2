@@ -18,29 +18,29 @@ import (
 )
 
 var (
-	// ErrorInvalidOpt is returned when an invalid opt is passed to otp
-	ErrorInvalidOpt errorInvalidOpt
-	// ErrorOptUnsupported is returned when an otp opt is unsupported
-	ErrorOptUnsupported errorOptUnsupported
-	// ErrorParamInvalid is returned when an otp param string is invalid
-	ErrorParamInvalid errorParamInvalid
+	// ErrInvalidOpt is returned when an invalid opt is passed to otp
+	ErrInvalidOpt errInvalidOpt
+	// ErrOptUnsupported is returned when an otp opt is unsupported
+	ErrOptUnsupported errOptUnsupported
+	// ErrParamInvalid is returned when an otp param string is invalid
+	ErrParamInvalid errParamInvalid
 )
 
 type (
-	errorInvalidOpt     struct{}
-	errorOptUnsupported struct{}
-	errorParamInvalid   struct{}
+	errInvalidOpt     struct{}
+	errOptUnsupported struct{}
+	errParamInvalid   struct{}
 )
 
-func (e errorInvalidOpt) Error() string {
+func (e errInvalidOpt) Error() string {
 	return "Invalid OTP opt"
 }
 
-func (e errorOptUnsupported) Error() string {
+func (e errOptUnsupported) Error() string {
 	return "OTP opt unsupported"
 }
 
-func (e errorParamInvalid) Error() string {
+func (e errParamInvalid) Error() string {
 	return "Invalid OTP param"
 }
 
@@ -101,7 +101,7 @@ type (
 // TOTP implements RFC6238
 func TOTP(secret []byte, t uint64, opts TOTPOpts) (string, error) {
 	if opts.Period == 0 {
-		return "", kerrors.WithKind(nil, ErrorInvalidOpt, "Invalid period")
+		return "", kerrors.WithKind(nil, ErrInvalidOpt, "Invalid period")
 	}
 	return HOTP(secret, t/opts.Period, opts.Alg, opts.Digits)
 }
@@ -147,29 +147,29 @@ func (c TOTPConfig) String() string {
 func (c *TOTPConfig) decodeParams(params string) error {
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
 	if len(b) != 3 || b[0] != "totp" {
-		return kerrors.WithKind(nil, ErrorParamInvalid, "Invalid totp params format")
+		return kerrors.WithKind(nil, ErrParamInvalid, "Invalid totp params format")
 	}
 	p := strings.Split(b[1], ",")
 	if len(p) != 4 {
-		return kerrors.WithKind(nil, ErrorParamInvalid, "Invalid totp params format")
+		return kerrors.WithKind(nil, ErrParamInvalid, "Invalid totp params format")
 	}
 	c.Alg = p[0]
 	var err error
 	c.Digits, err = strconv.Atoi(p[1])
 	if err != nil {
-		return kerrors.WithKind(err, ErrorParamInvalid, "Invalid digits")
+		return kerrors.WithKind(err, ErrParamInvalid, "Invalid digits")
 	}
 	c.Period, err = strconv.ParseUint(p[2], 10, 64)
 	if err != nil {
-		return kerrors.WithKind(err, ErrorParamInvalid, "Invalid period")
+		return kerrors.WithKind(err, ErrParamInvalid, "Invalid period")
 	}
 	c.Leeway, err = strconv.ParseUint(p[3], 10, 64)
 	if err != nil {
-		return kerrors.WithKind(err, ErrorParamInvalid, "Invalid leeway")
+		return kerrors.WithKind(err, ErrParamInvalid, "Invalid leeway")
 	}
 	c.Secret, err = base64.RawURLEncoding.DecodeString(b[2])
 	if err != nil {
-		return kerrors.WithKind(err, ErrorParamInvalid, "Invalid secret")
+		return kerrors.WithKind(err, ErrParamInvalid, "Invalid secret")
 	}
 	return nil
 }
@@ -259,7 +259,7 @@ func TOTPVerify(params string, code string, hashes Hashes) (bool, error) {
 	}
 	h, ok := hashes.Get(config.Alg)
 	if !ok {
-		return false, kerrors.WithKind(nil, ErrorOptUnsupported, "Invalid alg")
+		return false, kerrors.WithKind(nil, ErrOptUnsupported, "Invalid alg")
 	}
 	now := uint64(time.Now().Round(0).Unix())
 	opts := TOTPOpts{

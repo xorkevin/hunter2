@@ -30,15 +30,15 @@ func (h *mockHash) Hash(msg []byte) (string, error) {
 
 func (h *mockHash) Verify(msg []byte, msghash string) (bool, error) {
 	if !strings.HasPrefix(msghash, "$") {
-		return false, kerrors.WithKind(nil, ErrorInvalidFormat, "Invalid test hash format")
+		return false, kerrors.WithKind(nil, ErrInvalidFormat, "Invalid test hash format")
 	}
 	b := strings.Split(strings.TrimPrefix(msghash, "$"), "$")
 	if len(b) != 2 || b[0] != "test" {
-		return false, kerrors.WithKind(nil, ErrorInvalidFormat, "Invalid test hash format")
+		return false, kerrors.WithKind(nil, ErrInvalidFormat, "Invalid test hash format")
 	}
 	hashval, err := base64.RawURLEncoding.DecodeString(b[1])
 	if err != nil {
-		return false, kerrors.WithKind(err, ErrorInvalidFormat, "Invalid hash val")
+		return false, kerrors.WithKind(err, ErrInvalidFormat, "Invalid hash val")
 	}
 	k := blake2b.Sum512(msg)
 	return hmac.Equal(k[:], hashval), nil
@@ -54,7 +54,7 @@ func (b mockBuilder) ID() string {
 
 func (b mockBuilder) Build(params string) (Hasher, error) {
 	if params != "$test$" {
-		return nil, kerrors.WithKind(nil, ErrorKeyInvalid, "Invalid key")
+		return nil, kerrors.WithKind(nil, ErrKeyInvalid, "Invalid key")
 	}
 	return &mockHash{}, nil
 }
@@ -72,7 +72,7 @@ func TestVerifier(t *testing.T) {
 	{
 		v := NewVerifier()
 		ok, err := v.Verify([]byte("abc"), "bogus")
-		assert.ErrorIs(err, ErrorInvalidFormat)
+		assert.ErrorIs(err, ErrInvalidFormat)
 		assert.False(ok)
 	}
 
@@ -93,12 +93,12 @@ func TestVerifier(t *testing.T) {
 
 		// invalid hashid
 		ok, err = v.Verify([]byte(msg), "$bogusid")
-		assert.ErrorIs(err, ErrorNotSupported, "bogus hashid should fail")
+		assert.ErrorIs(err, ErrNotSupported, "bogus hashid should fail")
 		assert.False(ok, "bogus hashid should fail")
 
 		// invalid params
 		ok, err = v.Verify([]byte(msg), "$test$$")
-		assert.ErrorIs(err, ErrorInvalidFormat)
+		assert.ErrorIs(err, ErrInvalidFormat)
 		assert.False(ok)
 	}
 
@@ -115,15 +115,15 @@ func TestError(t *testing.T) {
 		String string
 	}{
 		{
-			Err:    ErrorNotSupported,
+			Err:    ErrNotSupported,
 			String: "Hash not supported",
 		},
 		{
-			Err:    ErrorInvalidFormat,
+			Err:    ErrInvalidFormat,
 			String: "Invalid hash format",
 		},
 		{
-			Err:    ErrorKeyInvalid,
+			Err:    ErrKeyInvalid,
 			String: "Invalid hash key",
 		},
 	} {

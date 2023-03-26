@@ -32,17 +32,17 @@ func TestHasher(t *testing.T) {
 	{
 		// invalid hash format
 		ok, err := hasher.Verify([]byte(msg), "")
-		assert.ErrorIs(err, h2hash.ErrorInvalidFormat, "blank hash should fail")
+		assert.ErrorIs(err, h2hash.ErrInvalidFormat, "blank hash should fail")
 		assert.False(ok, "blank hash should fail")
 		ok, err = hasher.Verify([]byte(msg), "$b2b")
-		assert.ErrorIs(err, h2hash.ErrorInvalidFormat, "invalid number of hash components should fail")
+		assert.ErrorIs(err, h2hash.ErrInvalidFormat, "invalid number of hash components should fail")
 		assert.False(ok, "invalid number of hash components should fail")
 	}
 
 	{
 		// invalid hash value
 		ok, err := hasher.Verify([]byte(msg), "$b2b$bogus+hash+val")
-		assert.ErrorIs(err, h2hash.ErrorInvalidFormat, "invalid hash should fail")
+		assert.ErrorIs(err, h2hash.ErrInvalidFormat, "invalid hash should fail")
 		assert.False(ok, "invalid hash should fail")
 	}
 
@@ -66,10 +66,10 @@ func TestHasher(t *testing.T) {
 		assert.NoError(err)
 		assert.True(ok)
 		ok, err = otherHasher.Verify([]byte(msg), hash)
-		assert.ErrorIs(err, h2hash.ErrorInvalidFormat)
+		assert.ErrorIs(err, h2hash.ErrInvalidFormat)
 		assert.False(ok)
 		ok, err = baseHasher.Verify([]byte(msg), hash)
-		assert.ErrorIs(err, h2hash.ErrorInvalidFormat)
+		assert.ErrorIs(err, h2hash.ErrInvalidFormat)
 		assert.False(ok)
 	}
 }

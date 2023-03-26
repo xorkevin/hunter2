@@ -50,23 +50,23 @@ func (c Config) String() (string, error) {
 
 func ParseConfig(params string) (*Config, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, kerrors.WithKind(nil, h2signer.ErrorSigningKeyInvalid, "Invalid rsa key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid rsa key")
 	}
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
 	if len(b) != 2 || b[0] != SigID {
-		return nil, kerrors.WithKind(nil, h2signer.ErrorSigningKeyInvalid, "Invalid rsa key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid rsa key")
 	}
 	pemBlock, rest := pem.Decode([]byte(b[1]))
 	if pemBlock == nil || pemBlock.Type != h2signer.PEMBlockTypePrivateKey || len(rest) != 0 {
-		return nil, kerrors.WithKind(nil, h2signer.ErrorSigningKeyInvalid, "Invalid rsa key pem")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid rsa key pem")
 	}
 	rawKey, err := x509.ParsePKCS8PrivateKey(pemBlock.Bytes)
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2signer.ErrorSigningKeyInvalid, "Invalid pkcs8 rsa key")
+		return nil, kerrors.WithKind(err, h2signer.ErrSigningKeyInvalid, "Invalid pkcs8 rsa key")
 	}
 	key, ok := rawKey.(*rsa.PrivateKey)
 	if !ok {
-		return nil, kerrors.WithKind(nil, h2signer.ErrorSigningKeyInvalid, "Invalid pkcs8 rsa key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid pkcs8 rsa key")
 	}
 	return &Config{
 		Key: key,

@@ -11,36 +11,36 @@ import (
 )
 
 var (
-	// ErrorNotSupported is returned when the hash is unsupported
-	ErrorNotSupported errorNotSupported
-	// ErrorInvalidFormat is returned when the checksum format is invalid
-	ErrorInvalidFormat errorInvalidFormat
-	// ErrorClosed is returned when writing after the hash is closed
-	ErrorClosed errorClosed
-	// ErrorKeyInvalid is returned when the hash key config is invalid
-	ErrorKeyInvalid errorKeyInvalid
+	// ErrNotSupported is returned when the hash is unsupported
+	ErrNotSupported errNotSupported
+	// ErrInvalidFormat is returned when the checksum format is invalid
+	ErrInvalidFormat errInvalidFormat
+	// ErrClosed is returned when writing after the hash is closed
+	ErrClosed errClosed
+	// ErrKeyInvalid is returned when the hash key config is invalid
+	ErrKeyInvalid errKeyInvalid
 )
 
 type (
-	errorNotSupported  struct{}
-	errorInvalidFormat struct{}
-	errorClosed        struct{}
-	errorKeyInvalid    struct{}
+	errNotSupported  struct{}
+	errInvalidFormat struct{}
+	errClosed        struct{}
+	errKeyInvalid    struct{}
 )
 
-func (e errorNotSupported) Error() string {
+func (e errNotSupported) Error() string {
 	return "Hash not supported"
 }
 
-func (e errorInvalidFormat) Error() string {
+func (e errInvalidFormat) Error() string {
 	return "Invalid checksum format"
 }
 
-func (e errorClosed) Error() string {
+func (e errClosed) Error() string {
 	return "Hash closed"
 }
 
-func (e errorKeyInvalid) Error() string {
+func (e errKeyInvalid) Error() string {
 	return "Invalid hash key"
 }
 
@@ -78,12 +78,12 @@ func (v *Verifier) Register(hasher Hasher) {
 // Verify returns the hash to verify a checksum
 func (v *Verifier) Verify(checksum string) (Hash, error) {
 	if !strings.HasPrefix(checksum, "$") {
-		return nil, kerrors.WithKind(nil, ErrorInvalidFormat, "Invalid checksum format")
+		return nil, kerrors.WithKind(nil, ErrInvalidFormat, "Invalid checksum format")
 	}
 	id, _, _ := strings.Cut(strings.TrimPrefix(checksum, "$"), "$")
 	hasher, ok := v.hashers[id]
 	if !ok {
-		return nil, kerrors.WithKind(nil, ErrorNotSupported, fmt.Sprintf("Hash not registered: %s", id))
+		return nil, kerrors.WithKind(nil, ErrNotSupported, fmt.Sprintf("Hash not registered: %s", id))
 	}
 	h, err := hasher.Verify(checksum)
 	if err != nil {
@@ -128,16 +128,16 @@ func (m *AlgsMap) Get(id string) (Builder, bool) {
 // FromParams creates a hasher from params
 func FromParams(params string, algs Algs) (Hasher, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, kerrors.WithKind(nil, ErrorKeyInvalid, "Invalid hash key")
+		return nil, kerrors.WithKind(nil, ErrKeyInvalid, "Invalid hash key")
 	}
 	id, _, _ := strings.Cut(strings.TrimPrefix(params, "$"), "$")
 	a, ok := algs.Get(id)
 	if !ok {
-		return nil, kerrors.WithKind(nil, ErrorNotSupported, fmt.Sprintf("Hash not registered: %s", id))
+		return nil, kerrors.WithKind(nil, ErrNotSupported, fmt.Sprintf("Hash not registered: %s", id))
 	}
 	h, err := a.Build(params)
 	if err != nil {
-		return nil, kerrors.WithKind(err, ErrorKeyInvalid, "Invalid hash key")
+		return nil, kerrors.WithKind(err, ErrKeyInvalid, "Invalid hash key")
 	}
 	return h, nil
 }

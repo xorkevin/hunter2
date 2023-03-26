@@ -30,15 +30,15 @@ func (c *mockCipher) Encrypt(plaintext []byte) (string, error) {
 
 func (c *mockCipher) Decrypt(ciphertext string) ([]byte, error) {
 	if !strings.HasPrefix(ciphertext, "$") {
-		return nil, kerrors.WithKind(nil, ErrorCiphertextInvalid, "Invalid ciphertext")
+		return nil, kerrors.WithKind(nil, ErrCiphertextInvalid, "Invalid ciphertext")
 	}
 	b := strings.Split(strings.TrimPrefix(ciphertext, "$"), "$")
 	if len(b) != 3 || b[0] != c.kid || b[1] != "test" {
-		return nil, kerrors.WithKind(nil, ErrorCiphertextInvalid, "Invalid ciphertext")
+		return nil, kerrors.WithKind(nil, ErrCiphertextInvalid, "Invalid ciphertext")
 	}
 	plaintext, err := base64.RawURLEncoding.DecodeString(b[2])
 	if err != nil {
-		return nil, kerrors.WithKind(err, ErrorCiphertextInvalid, "Invalid ciphertext")
+		return nil, kerrors.WithKind(err, ErrCiphertextInvalid, "Invalid ciphertext")
 	}
 	return plaintext, nil
 }
@@ -53,7 +53,7 @@ func (b mockBuilder) ID() string {
 
 func (b mockBuilder) Build(params string) (Cipher, error) {
 	if !strings.HasPrefix(params, "$test$") {
-		return nil, kerrors.WithKind(nil, ErrorKeyInvalid, "Invalid key")
+		return nil, kerrors.WithKind(nil, ErrKeyInvalid, "Invalid key")
 	}
 	return &mockCipher{
 		kid: strings.TrimPrefix(params, "$test$"),

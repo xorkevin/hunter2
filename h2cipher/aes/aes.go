@@ -45,15 +45,15 @@ func (c Config) String() string {
 // ParseConfig loads an aes config from params string
 func ParseConfig(params string) (*Config, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, kerrors.WithKind(nil, h2cipher.ErrorKeyInvalid, "Invalid aes key")
+		return nil, kerrors.WithKind(nil, h2cipher.ErrKeyInvalid, "Invalid aes key")
 	}
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
 	if len(b) != 2 || b[0] != CipherID {
-		return nil, kerrors.WithKind(nil, h2cipher.ErrorKeyInvalid, "Invalid aes key")
+		return nil, kerrors.WithKind(nil, h2cipher.ErrKeyInvalid, "Invalid aes key")
 	}
 	key, err := base64.RawURLEncoding.DecodeString(b[1])
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2cipher.ErrorKeyInvalid, "Invalid aes key")
+		return nil, kerrors.WithKind(err, h2cipher.ErrKeyInvalid, "Invalid aes key")
 	}
 	return &Config{
 		Key: key,
@@ -138,23 +138,23 @@ func (c *Cipher) Encrypt(plaintext []byte) (string, error) {
 
 func (c *Cipher) Decrypt(ciphertext string) ([]byte, error) {
 	if !strings.HasPrefix(ciphertext, "$") {
-		return nil, kerrors.WithKind(nil, h2cipher.ErrorCiphertextInvalid, "Invalid aes ciphertext")
+		return nil, kerrors.WithKind(nil, h2cipher.ErrCiphertextInvalid, "Invalid aes ciphertext")
 	}
 	b := strings.Split(strings.TrimPrefix(ciphertext, "$"), "$")
 	if len(b) != 4 || b[0] != c.kid || b[1] != CipherID {
-		return nil, kerrors.WithKind(nil, h2cipher.ErrorCiphertextInvalid, "Invalid aes ciphertext")
+		return nil, kerrors.WithKind(nil, h2cipher.ErrCiphertextInvalid, "Invalid aes ciphertext")
 	}
 	nonce, err := base64.RawURLEncoding.DecodeString(b[2])
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2cipher.ErrorCiphertextInvalid, "Invalid aes nonce")
+		return nil, kerrors.WithKind(err, h2cipher.ErrCiphertextInvalid, "Invalid aes nonce")
 	}
 	ciphertextbytes, err := base64.RawURLEncoding.DecodeString(b[3])
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2cipher.ErrorCiphertextInvalid, "Invalid aes ciphertext")
+		return nil, kerrors.WithKind(err, h2cipher.ErrCiphertextInvalid, "Invalid aes ciphertext")
 	}
 	plaintext, err := c.cipher.Open(nil, nonce, ciphertextbytes, nil)
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2cipher.ErrorCiphertextInvalid, "Failed to decrypt aes")
+		return nil, kerrors.WithKind(err, h2cipher.ErrCiphertextInvalid, "Failed to decrypt aes")
 	}
 	return plaintext, nil
 }

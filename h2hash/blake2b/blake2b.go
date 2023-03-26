@@ -43,15 +43,15 @@ func (c Config) String() string {
 // ParseConfig loads a blake2b key config from params string
 func ParseConfig(params string) (*Config, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, kerrors.WithKind(nil, h2hash.ErrorKeyInvalid, "Invalid blake2b key")
+		return nil, kerrors.WithKind(nil, h2hash.ErrKeyInvalid, "Invalid blake2b key")
 	}
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
 	if len(b) != 2 || b[0] != HashID {
-		return nil, kerrors.WithKind(nil, h2hash.ErrorKeyInvalid, "Invalid blake2b key")
+		return nil, kerrors.WithKind(nil, h2hash.ErrKeyInvalid, "Invalid blake2b key")
 	}
 	key, err := base64.RawURLEncoding.DecodeString(b[1])
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2hash.ErrorKeyInvalid, "Invalid blake2b key")
+		return nil, kerrors.WithKind(err, h2hash.ErrKeyInvalid, "Invalid blake2b key")
 	}
 	return &Config{
 		Key: key,
@@ -146,25 +146,25 @@ func (h *Hasher) Hash(msg []byte) (string, error) {
 
 func (h *Hasher) Verify(msg []byte, msghash string) (bool, error) {
 	if !strings.HasPrefix(msghash, "$") {
-		return false, kerrors.WithKind(nil, h2hash.ErrorInvalidFormat, "Invalid blake2b hash format")
+		return false, kerrors.WithKind(nil, h2hash.ErrInvalidFormat, "Invalid blake2b hash format")
 	}
 	b := strings.Split(strings.TrimPrefix(msghash, "$"), "$")
 	var hashstr string
 	if h.kid != "" {
 		if len(b) != 3 || b[0] != h.kid || b[1] != HashID {
-			return false, kerrors.WithKind(nil, h2hash.ErrorInvalidFormat, "Invalid blake2b keyed hash format")
+			return false, kerrors.WithKind(nil, h2hash.ErrInvalidFormat, "Invalid blake2b keyed hash format")
 		}
 		hashstr = b[2]
 	} else {
 		if len(b) != 2 || b[0] != HashID {
-			return false, kerrors.WithKind(nil, h2hash.ErrorInvalidFormat, "Invalid blake2b hash format")
+			return false, kerrors.WithKind(nil, h2hash.ErrInvalidFormat, "Invalid blake2b hash format")
 		}
 		hashstr = b[1]
 	}
 
 	hashval, err := base64.RawURLEncoding.DecodeString(hashstr)
 	if err != nil {
-		return false, kerrors.WithKind(err, h2hash.ErrorInvalidFormat, "Invalid blake2b hash format")
+		return false, kerrors.WithKind(err, h2hash.ErrInvalidFormat, "Invalid blake2b hash format")
 	}
 	res, err := h.exec(msg)
 	if err != nil {
