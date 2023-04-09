@@ -14,27 +14,27 @@ import (
 )
 
 const (
-	CipherID = "c20"
+	CipherID = "xc20"
 	MACID    = "p1305"
 )
 
 type (
-	// Config are chacha20 params
+	// Config are xchacha20 params
 	Config struct {
 		Key   []byte
 		Nonce []byte
 	}
 )
 
-// NewConfig creates a new chacha20 config
+// NewConfig creates a new xchacha20 config
 func NewConfig() (*Config, error) {
 	key := make([]byte, chacha20.KeySize)
 	if _, err := rand.Read(key); err != nil {
-		return nil, kerrors.WithMsg(err, "Failed to generate chacha20 key")
+		return nil, kerrors.WithMsg(err, "Failed to generate xchacha20 key")
 	}
 	nonce := make([]byte, chacha20.NonceSizeX)
 	if _, err := rand.Read(nonce); err != nil {
-		return nil, kerrors.WithMsg(err, "Failed to generate chacha20 nonce")
+		return nil, kerrors.WithMsg(err, "Failed to generate xchacha20 nonce")
 	}
 	return &Config{
 		Key:   key,
@@ -42,7 +42,7 @@ func NewConfig() (*Config, error) {
 	}, nil
 }
 
-// String returns a chacha20 config as a string
+// String returns a xchacha20 config as a string
 func (c Config) String() string {
 	var b strings.Builder
 	b.WriteString("$")
@@ -54,22 +54,22 @@ func (c Config) String() string {
 	return b.String()
 }
 
-// ParseConfig loads a chacha20 config from params string
+// ParseConfig loads a xchacha20 config from params string
 func ParseConfig(params string) (*Config, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, kerrors.WithKind(nil, h2streamcipher.ErrKeyInvalid, "Invalid chacha20 key")
+		return nil, kerrors.WithKind(nil, h2streamcipher.ErrKeyInvalid, "Invalid xchacha20 key")
 	}
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
 	if len(b) != 3 || b[0] != CipherID {
-		return nil, kerrors.WithKind(nil, h2streamcipher.ErrKeyInvalid, "Invalid chacha20 key")
+		return nil, kerrors.WithKind(nil, h2streamcipher.ErrKeyInvalid, "Invalid xchacha20 key")
 	}
 	key, err := base64.RawURLEncoding.DecodeString(b[1])
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2streamcipher.ErrKeyInvalid, "Invalid chacha20 key")
+		return nil, kerrors.WithKind(err, h2streamcipher.ErrKeyInvalid, "Invalid xchacha20 key")
 	}
 	nonce, err := base64.RawURLEncoding.DecodeString(b[2])
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2streamcipher.ErrKeyInvalid, "Invalid chacha20 nonce")
+		return nil, kerrors.WithKind(err, h2streamcipher.ErrKeyInvalid, "Invalid xchacha20 nonce")
 	}
 	return &Config{
 		Key:   key,
@@ -77,11 +77,11 @@ func ParseConfig(params string) (*Config, error) {
 	}, nil
 }
 
-// NewStream creates a new chacha20 stream cipher
+// NewStream creates a new xchacha20 stream cipher
 func NewStream(config Config) (h2streamcipher.KeyStream, error) {
 	stream, err := chacha20.NewUnauthenticatedCipher(config.Key, config.Nonce)
 	if err != nil {
-		return nil, kerrors.WithMsg(err, "Failed to create chacha20 cipher stream")
+		return nil, kerrors.WithMsg(err, "Failed to create xchacha20 cipher stream")
 	}
 	stream.SetCounter(1)
 	return stream, nil
@@ -194,7 +194,7 @@ func ParsePoly1305Tag(tagstr string) ([]byte, error) {
 	return tag, nil
 }
 
-// NewFromConfig creates a chacha20-poly1305 cipher from config
+// NewFromConfig creates a xchacha20-poly1305 cipher from config
 func NewFromConfig(config Config) (h2streamcipher.KeyStream, *Poly1305Auth, error) {
 	s, err := NewStream(config)
 	if err != nil {
@@ -207,7 +207,7 @@ func NewFromConfig(config Config) (h2streamcipher.KeyStream, *Poly1305Auth, erro
 	return s, auth, nil
 }
 
-// NewFromParams creates a chacha20-poly1305 cipher from params
+// NewFromParams creates a xchacha20-poly1305 cipher from params
 func NewFromParams(params string) (h2streamcipher.KeyStream, *Poly1305Auth, error) {
 	config, err := ParseConfig(params)
 	if err != nil {
