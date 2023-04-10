@@ -1,4 +1,4 @@
-package chacha20poly1305
+package xchacha20poly1305
 
 import (
 	"testing"

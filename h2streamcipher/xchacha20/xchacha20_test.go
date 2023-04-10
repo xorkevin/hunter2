@@ -1,4 +1,4 @@
-package chacha20
+package xchacha20
 
 import (
 	"bytes"
