@@ -96,7 +96,7 @@ func (a *Poly1305Auth) Write(src []byte) (int, error) {
 		// should not happen as specified by [hash.Hash]
 		return n, kerrors.WithMsg(err, "Failed writing to MAC")
 	}
-	if n != len(src) && err == nil {
+	if n != len(src) {
 		// should never happen
 		return n, kerrors.WithMsg(io.ErrShortWrite, "Short write")
 	}

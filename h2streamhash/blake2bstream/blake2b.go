@@ -99,7 +99,7 @@ func (h *Hash) Write(src []byte) (int, error) {
 		// should not happen as specified by [hash.Hash]
 		return n, kerrors.WithMsg(err, "Failed writing to hash")
 	}
-	if n != len(src) && err == nil {
+	if n != len(src) {
 		// should never happen
 		return n, kerrors.WithMsg(io.ErrShortWrite, "Short write")
 	}
@@ -121,7 +121,7 @@ func (h *Hash) Close() error {
 		if k, err := h.hash.Write(b); err != nil {
 			// should not happen as specified by [hash.Hash]
 			return kerrors.WithMsg(err, "Failed writing to hash")
-		} else if k != int(l) && err == nil {
+		} else if k != int(l) {
 			// should never happen
 			return kerrors.WithMsg(io.ErrShortWrite, "Short write")
 		}
