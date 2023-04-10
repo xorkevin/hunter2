@@ -113,23 +113,27 @@ func (h *Hash) Close() error {
 	if h.closed {
 		return nil
 	}
+
 	if n := h.count % 16; n > 0 {
 		// pad length to 16 bytes
 		l := 16 - n
 		b := make([]byte, l)
-		k, err := h.hash.Write(b)
-		if err != nil {
+		if k, err := h.hash.Write(b); err != nil {
 			// should not happen as specified by [hash.Hash]
 			return kerrors.WithMsg(err, "Failed writing to hash")
-		}
-		if k != int(l) && err == nil {
+		} else if k != int(l) && err == nil {
 			// should never happen
 			return kerrors.WithMsg(io.ErrShortWrite, "Short write")
 		}
 	}
-	if err := binary.Write(h.hash, binary.LittleEndian, h.count); err != nil {
+	var buf [8]byte
+	binary.LittleEndian.PutUint64(buf[:], h.count)
+	if n, err := h.hash.Write(buf[:]); err != nil {
 		// should not happen as specified by [hash.Hash]
 		return kerrors.WithMsg(err, "Failed to write count")
+	} else if n != 8 {
+		// should never happen
+		return kerrors.WithMsg(io.ErrShortWrite, "Short write")
 	}
 	h.closed = true
 	return nil

@@ -80,14 +80,11 @@ func NewEncStreamReader(s KeyStream, mac MAC, plaintext io.Reader) *EncStreamRea
 func (r *EncStreamReader) Read(dst []byte) (int, error) {
 	n, err := r.Plaintext.Read(dst)
 	if n > 0 {
-		dstSlice := dst[:n]
-		r.Stream.XORKeyStream(dstSlice, dstSlice)
-		k, err := r.MAC.Write(dst[:n])
-		if err != nil {
+		r.Stream.XORKeyStream(dst[:n], dst[:n])
+		if k, err := r.MAC.Write(dst[:n]); err != nil {
 			// should not happen as specified by [hash.Hash]
 			return n, kerrors.WithMsg(err, "Failed to write to MAC")
-		}
-		if k != n && err == nil {
+		} else if k != n {
 			// should never happen
 			return n, kerrors.WithMsg(io.ErrShortWrite, "Short write")
 		}
@@ -127,17 +124,14 @@ func NewDecStreamReader(s KeyStream, mac MAC, ciphertext io.Reader) *DecStreamRe
 func (r *DecStreamReader) Read(dst []byte) (int, error) {
 	n, err := r.Ciphertext.Read(dst)
 	if n > 0 {
-		k, err := r.MAC.Write(dst[:n])
-		if err != nil {
+		if k, err := r.MAC.Write(dst[:n]); err != nil {
 			// should not happen as specified by [hash.Hash]
 			return n, kerrors.WithMsg(err, "Failed to write to MAC")
-		}
-		if k != n && err == nil {
+		} else if k != n {
 			// should never happen
 			return n, kerrors.WithMsg(io.ErrShortWrite, "Short write")
 		}
-		dstSlice := dst[:n]
-		r.Stream.XORKeyStream(dstSlice, dstSlice)
+		r.Stream.XORKeyStream(dst[:n], dst[:n])
 	}
 	return n, err
 }

@@ -77,16 +77,6 @@ func ParseConfig(params string) (*Config, error) {
 	}, nil
 }
 
-// NewStream creates a new xchacha20 stream cipher
-func NewStream(config Config) (h2streamcipher.KeyStream, error) {
-	stream, err := chacha20.NewUnauthenticatedCipher(config.Key, config.Nonce)
-	if err != nil {
-		return nil, kerrors.WithMsg(err, "Failed to create xchacha20 cipher stream")
-	}
-	stream.SetCounter(1)
-	return stream, nil
-}
-
 type (
 	// Poly1305Auth computes a poly1305 auth tag
 	Poly1305Auth struct {
@@ -95,23 +85,6 @@ type (
 		count  uint64
 	}
 )
-
-// NewPoly1305Auth creates a new poly1305 hash to authenticate a cipher stream
-func NewPoly1305Auth(c Config) (*Poly1305Auth, error) {
-	s, err := chacha20.NewUnauthenticatedCipher(c.Key, c.Nonce)
-	if err != nil {
-		return nil, kerrors.WithMsg(err, "Failed to generate poly1305 key")
-	}
-	s.SetCounter(0)
-	polyKey := [32]byte{}
-	polyKeySlice := polyKey[:]
-	s.XORKeyStream(polyKeySlice, polyKeySlice)
-	return &Poly1305Auth{
-		closed: false,
-		mac:    poly1305.New(&polyKey),
-		count:  0,
-	}, nil
-}
 
 // Write implements [io.Writer]
 func (a *Poly1305Auth) Write(src []byte) (int, error) {
@@ -137,23 +110,28 @@ func (a *Poly1305Auth) Close() error {
 	if a.closed {
 		return nil
 	}
-	if n := a.count % 16; n > 0 {
+
+	// taken from golang.org/x/crypto/chacha20poly1305
+	if n := a.count % 16; n != 0 {
 		// pad length to 16 bytes
+		var buf [16]byte
 		l := 16 - n
-		b := make([]byte, l)
-		k, err := a.mac.Write(b)
-		if err != nil {
+		if k, err := a.mac.Write(buf[:l]); err != nil {
 			// should not happen as specified by [hash.Hash]
 			return kerrors.WithMsg(err, "Failed writing to MAC")
-		}
-		if k != int(l) && err == nil {
+		} else if k != int(l) {
 			// should never happen
 			return kerrors.WithMsg(io.ErrShortWrite, "Short write")
 		}
 	}
-	if err := binary.Write(a.mac, binary.LittleEndian, a.count); err != nil {
+	var buf [8]byte
+	binary.LittleEndian.PutUint64(buf[:], a.count)
+	if n, err := a.mac.Write(buf[:]); err != nil {
 		// should not happen as specified by [hash.Hash]
 		return kerrors.WithMsg(err, "Failed to write auth count")
+	} else if n != 8 {
+		// should never happen
+		return kerrors.WithMsg(io.ErrShortWrite, "Short write")
 	}
 	a.closed = true
 	return nil
@@ -196,14 +174,22 @@ func ParsePoly1305Tag(tagstr string) ([]byte, error) {
 
 // NewFromConfig creates a xchacha20-poly1305 cipher from config
 func NewFromConfig(config Config) (h2streamcipher.KeyStream, *Poly1305Auth, error) {
-	s, err := NewStream(config)
+	s, err := chacha20.NewUnauthenticatedCipher(config.Key, config.Nonce)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, kerrors.WithMsg(err, "Failed to create xchacha20 cipher stream")
 	}
-	auth, err := NewPoly1305Auth(config)
-	if err != nil {
-		return nil, nil, err
+
+	// taken from golang.org/x/crypto/chacha20poly1305
+	var polyKey [32]byte
+	s.XORKeyStream(polyKey[:], polyKey[:])
+	s.SetCounter(1) // set the counter to 1, skipping 32 bytes
+
+	auth := &Poly1305Auth{
+		closed: false,
+		mac:    poly1305.New(&polyKey),
+		count:  0,
 	}
+
 	return s, auth, nil
 }
 
