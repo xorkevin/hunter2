@@ -1,4 +1,4 @@
-package rs256
+package rsasig
 
 import (
 	"crypto"
@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	SigID = "rs256"
+	SigID = "rsa"
 )
 
 type (

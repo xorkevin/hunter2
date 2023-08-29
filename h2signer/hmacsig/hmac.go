@@ -1,4 +1,4 @@
-package hs256
+package hmacsig
 
 import (
 	"crypto/rand"
@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	SigID = "hs256"
+	SigID = "hmac"
 )
 
 type (
