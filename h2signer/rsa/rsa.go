@@ -1,9 +1,9 @@
-package eddsa
+package rs256
 
 import (
 	"crypto"
-	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"strings"
@@ -13,19 +13,19 @@ import (
 )
 
 const (
-	SigID = "eddsa"
+	SigID = "rs256"
 )
 
 type (
 	Config struct {
-		Key ed25519.PrivateKey
+		Key *rsa.PrivateKey
 	}
 )
 
 func NewConfig() (*Config, error) {
-	_, key, err := ed25519.GenerateKey(rand.Reader)
+	key, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
-		return nil, kerrors.WithMsg(err, "Failed to generate ed25519 key")
+		return nil, kerrors.WithMsg(err, "Failed to generate rsa key")
 	}
 	return &Config{
 		Key: key,
@@ -39,7 +39,7 @@ func (c Config) String() (string, error) {
 	b.WriteString("$")
 	rawKey, err := x509.MarshalPKCS8PrivateKey(c.Key)
 	if err != nil {
-		return "", kerrors.WithMsg(err, "Failed to marshal ed25519 key")
+		return "", kerrors.WithMsg(err, "Failed to marshal rsa key")
 	}
 	b.Write(pem.EncodeToMemory(&pem.Block{
 		Type:  h2signer.PEMBlockTypePrivateKey,
@@ -50,23 +50,23 @@ func (c Config) String() (string, error) {
 
 func ParseConfig(params string) (*Config, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid ed25519 key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid rsa key")
 	}
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
 	if len(b) != 2 || b[0] != SigID {
-		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid ed25519 key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid rsa key")
 	}
 	pemBlock, rest := pem.Decode([]byte(b[1]))
 	if pemBlock == nil || pemBlock.Type != h2signer.PEMBlockTypePrivateKey || len(rest) != 0 {
-		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid ed25519 key pem")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid rsa key pem")
 	}
 	rawKey, err := x509.ParsePKCS8PrivateKey(pemBlock.Bytes)
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2signer.ErrSigningKeyInvalid, "Invalid pkcs8 ed25519 key")
+		return nil, kerrors.WithKind(err, h2signer.ErrSigningKeyInvalid, "Invalid pkcs8 rsa key")
 	}
-	key, ok := rawKey.(ed25519.PrivateKey)
+	key, ok := rawKey.(*rsa.PrivateKey)
 	if !ok {
-		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid pkcs8 ed25519 key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid pkcs8 rsa key")
 	}
 	return &Config{
 		Key: key,
@@ -74,17 +74,18 @@ func ParseConfig(params string) (*Config, error) {
 }
 
 type (
-	// Key implements SigningKey for ED25519 EdDSA
+	// Key implements SigningKey for RS256
 	Key struct {
-		key ed25519.PrivateKey
+		key *rsa.PrivateKey
 		pub *PubKey
 	}
 )
 
 func New(config Config) (*Key, error) {
 	k := config.Key
+	k.Precompute()
 	pk, err := NewPubKey(PubConfig{
-		Pub: k.Public().(ed25519.PublicKey),
+		Pub: &k.PublicKey,
 	})
 	if err != nil {
 		return nil, err
@@ -107,7 +108,7 @@ func (k *Key) Verifier() h2signer.VerifierKey {
 	return k.pub
 }
 
-// NewFromParams creates an ED25519 EdDSA key from params
+// NewFromParams creates an RS256 key from params
 func NewFromParams(params string) (*Key, error) {
 	config, err := ParseConfig(params)
 	if err != nil {
@@ -118,7 +119,7 @@ func NewFromParams(params string) (*Key, error) {
 
 type (
 	PubConfig struct {
-		Pub ed25519.PublicKey
+		Pub *rsa.PublicKey
 	}
 )
 
@@ -129,7 +130,7 @@ func (c PubConfig) String() (string, error) {
 	b.WriteString("$")
 	rawKey, err := x509.MarshalPKIXPublicKey(c.Pub)
 	if err != nil {
-		return "", kerrors.WithMsg(err, "Failed to marshal ed25519 public key")
+		return "", kerrors.WithMsg(err, "Failed to marshal rsa public key")
 	}
 	b.Write(pem.EncodeToMemory(&pem.Block{
 		Type:  h2signer.PEMBlockTypePublicKey,
@@ -140,23 +141,23 @@ func (c PubConfig) String() (string, error) {
 
 func ParsePubConfig(params string) (*PubConfig, error) {
 	if !strings.HasPrefix(params, "$") {
-		return nil, kerrors.WithKind(nil, h2signer.ErrVerifierKeyInvalid, "Invalid ed25519 public key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrVerifierKeyInvalid, "Invalid rsa public key")
 	}
 	b := strings.Split(strings.TrimPrefix(params, "$"), "$")
 	if len(b) != 2 || b[0] != SigID {
-		return nil, kerrors.WithKind(nil, h2signer.ErrVerifierKeyInvalid, "Invalid ed25519 public key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrVerifierKeyInvalid, "Invalid rsa public key")
 	}
 	pemBlock, rest := pem.Decode([]byte(b[1]))
 	if pemBlock == nil || pemBlock.Type != h2signer.PEMBlockTypePublicKey || len(rest) != 0 {
-		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid ed25519 public key pem")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid rsa public key pem")
 	}
 	rawKey, err := x509.ParsePKIXPublicKey(pemBlock.Bytes)
 	if err != nil {
-		return nil, kerrors.WithKind(err, h2signer.ErrSigningKeyInvalid, "Invalid pkix ed25519 public key")
+		return nil, kerrors.WithKind(err, h2signer.ErrSigningKeyInvalid, "Invalid pkix rsa public key")
 	}
-	pub, ok := rawKey.(ed25519.PublicKey)
+	pub, ok := rawKey.(*rsa.PublicKey)
 	if !ok {
-		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid pkix ed25519 public key")
+		return nil, kerrors.WithKind(nil, h2signer.ErrSigningKeyInvalid, "Invalid pkix rsa public key")
 	}
 	return &PubConfig{
 		Pub: pub,
@@ -164,7 +165,7 @@ func ParsePubConfig(params string) (*PubConfig, error) {
 }
 
 type (
-	// PubKey implements VerifierKey for ED25519 EdDSA
+	// PubKey implements VerifierKey for RSA RS256
 	PubKey struct {
 		kid string
 		pub crypto.PublicKey

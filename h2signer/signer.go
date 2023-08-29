@@ -40,16 +40,15 @@ type (
 	// SigningKey is a signing key interface
 	SigningKey interface {
 		Alg() string
-		ID() string
-		Private() interface{}
-		Public() interface{}
+		Private() any
+		Verifier() VerifierKey
 	}
 
 	// VerifierKey is a verifier key interface
 	VerifierKey interface {
 		Alg() string
 		ID() string
-		Public() interface{}
+		Public() any
 	}
 
 	// SigningKeyring holds signing keys
@@ -72,7 +71,7 @@ func NewSigningKeyring() *SigningKeyring {
 
 // Register registers a signing key
 func (s *SigningKeyring) Register(k SigningKey) {
-	s.keys[k.ID()] = k
+	s.keys[k.Verifier().ID()] = k
 }
 
 // Get gets a registered signing key by id
