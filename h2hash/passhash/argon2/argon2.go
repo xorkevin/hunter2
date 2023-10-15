@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	HashID = "a2id"
+	HashID  = "a2id"
+	Version = argon2.Version
 )
 
 type (
