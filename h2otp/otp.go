@@ -275,6 +275,13 @@ func TOTPVerify(params string, code string, hashes Hashes) (bool, error) {
 		if hmac.Equal([]byte(totp), []byte(code)) {
 			return true, nil
 		}
+		totp, err = TOTP(config.Secret, now+i, opts)
+		if err != nil {
+			return false, err
+		}
+		if hmac.Equal([]byte(totp), []byte(code)) {
+			return true, nil
+		}
 	}
 	return false, nil
 }
