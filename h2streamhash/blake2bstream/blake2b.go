@@ -27,7 +27,7 @@ type (
 func NewConfig() (*Config, error) {
 	key := make([]byte, 32)
 	if _, err := rand.Read(key); err != nil {
-		return nil, kerrors.WithMsg(err, "Failed to generate aes key")
+		return nil, kerrors.WithMsg(err, "Failed to generate blake2b key")
 	}
 	return &Config{
 		Key: key,
