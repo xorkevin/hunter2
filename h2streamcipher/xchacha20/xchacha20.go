@@ -125,6 +125,15 @@ func (a *Poly1305Auth) Close() error {
 		}
 	}
 	var buf [8]byte
+	// write zero authenticated data
+	binary.LittleEndian.PutUint64(buf[:], 0)
+	if n, err := a.mac.Write(buf[:]); err != nil {
+		// should not happen as specified by [hash.Hash]
+		return kerrors.WithMsg(err, "Failed to write auth count")
+	} else if n != 8 {
+		// should never happen
+		return kerrors.WithMsg(io.ErrShortWrite, "Short write")
+	}
 	binary.LittleEndian.PutUint64(buf[:], a.count)
 	if n, err := a.mac.Write(buf[:]); err != nil {
 		// should not happen as specified by [hash.Hash]

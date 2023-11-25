@@ -2,11 +2,14 @@ package xchacha20
 
 import (
 	"bytes"
+	"crypto/rand"
 	"io"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/chacha20poly1305"
+	"golang.org/x/crypto/poly1305"
 	"xorkevin.dev/hunter2/h2streamcipher"
 )
 
@@ -63,4 +66,41 @@ func TestStream_Write(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestVectors(t *testing.T) {
+	t.Parallel()
+
+	assert := require.New(t)
+
+	key := make([]byte, chacha20poly1305.KeySize)
+	_, err := rand.Read(key)
+	assert.NoError(err)
+
+	targetCipher, err := chacha20poly1305.NewX(key)
+	assert.NoError(err)
+
+	nonce := make([]byte, targetCipher.NonceSize())
+	_, err = rand.Read(nonce)
+	assert.NoError(err)
+
+	targetVector := targetCipher.Seal(nil, nonce, []byte("Hello, world"), nil)
+
+	stream, auth, err := NewFromConfig(Config{
+		Key:   key,
+		Nonce: nonce,
+	})
+	assert.NoError(err)
+
+	ciphertext := []byte("Hello, world")
+	stream.XORKeyStream(ciphertext[:], ciphertext[:])
+	_, err = auth.Write(ciphertext)
+	assert.NoError(err)
+	assert.NoError(auth.Close())
+
+	assert.Len(targetVector, len(ciphertext)+poly1305.TagSize)
+	assert.Equal(targetVector[:len(ciphertext)], ciphertext)
+	tag, err := ParsePoly1305Tag(auth.Tag())
+	assert.NoError(err)
+	assert.Equal(targetVector[len(ciphertext):], tag)
 }
