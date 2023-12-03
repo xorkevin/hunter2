@@ -84,6 +84,13 @@ func NewHash(config Config) (*Hash, error) {
 	}, nil
 }
 
+func (h *Hash) ID() string {
+	if h.kid != "" {
+		return h.kid
+	}
+	return HashID
+}
+
 // Write implements [io.Writer]
 func (h *Hash) Write(src []byte) (int, error) {
 	n, err := h.hash.Write(src)

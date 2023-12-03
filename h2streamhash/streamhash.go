@@ -47,6 +47,7 @@ func (e errKeyInvalid) Error() string {
 type (
 	Hash interface {
 		io.WriteCloser
+		ID() string
 		Sum() string
 		Verify(checksum string) (bool, error)
 	}
