@@ -1,4 +1,4 @@
-package blake2bstream
+package sha256stream
 
 import (
 	"io"
