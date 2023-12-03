@@ -4,7 +4,6 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/binary"
 	"hash"
 	"io"
 	"strings"
@@ -64,10 +63,8 @@ func ParseConfig(params string) (*Config, error) {
 type (
 	// Hash implements [h2streamhash.Hash] for blake2b
 	Hash struct {
-		kid    string
-		closed bool
-		hash   hash.Hash
-		count  uint64
+		kid  string
+		hash hash.Hash
 	}
 )
 
@@ -82,18 +79,13 @@ func NewHash(config Config) (*Hash, error) {
 		kid = h2streamhash.KeyID(config.String())
 	}
 	return &Hash{
-		kid:    kid,
-		closed: false,
-		hash:   h,
-		count:  0,
+		kid:  kid,
+		hash: h,
 	}, nil
 }
 
 // Write implements [io.Writer]
 func (h *Hash) Write(src []byte) (int, error) {
-	if h.closed {
-		return 0, h2streamhash.ErrClosed
-	}
 	n, err := h.hash.Write(src)
 	if err != nil {
 		// should not happen as specified by [hash.Hash]
@@ -103,39 +95,11 @@ func (h *Hash) Write(src []byte) (int, error) {
 		// should never happen
 		return n, kerrors.WithMsg(io.ErrShortWrite, "Short write")
 	}
-	h.count += uint64(n)
 	return n, nil
 }
 
-// Close writes the number of bytes of the input to the hash and should be
-// called after writing all the input. This prevents length extension attacks.
+// Close implements [h2streamhash.Hash]
 func (h *Hash) Close() error {
-	if h.closed {
-		return nil
-	}
-
-	if n := h.count % 16; n > 0 {
-		// pad length to 16 bytes
-		l := 16 - n
-		b := make([]byte, l)
-		if k, err := h.hash.Write(b); err != nil {
-			// should not happen as specified by [hash.Hash]
-			return kerrors.WithMsg(err, "Failed writing to hash")
-		} else if k != int(l) {
-			// should never happen
-			return kerrors.WithMsg(io.ErrShortWrite, "Short write")
-		}
-	}
-	var buf [8]byte
-	binary.LittleEndian.PutUint64(buf[:], h.count)
-	if n, err := h.hash.Write(buf[:]); err != nil {
-		// should not happen as specified by [hash.Hash]
-		return kerrors.WithMsg(err, "Failed to write count")
-	} else if n != 8 {
-		// should never happen
-		return kerrors.WithMsg(io.ErrShortWrite, "Short write")
-	}
-	h.closed = true
 	return nil
 }
 
