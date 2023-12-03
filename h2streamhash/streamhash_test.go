@@ -19,6 +19,10 @@ type (
 	}
 )
 
+func (m *mockHash) ID() string {
+	return "test"
+}
+
 func (m *mockHash) Write(src []byte) (int, error) {
 	return m.h.Write(src)
 }
