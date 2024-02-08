@@ -99,7 +99,6 @@ func TestEncDecStreams(t *testing.T) {
 			Plaintext: "Lorem ipsum",
 		},
 	} {
-		tc := tc
 		t.Run(tc.Plaintext, func(t *testing.T) {
 			t.Parallel()
 

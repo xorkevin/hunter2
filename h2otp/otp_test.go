@@ -96,7 +96,6 @@ func TestHOTP(t *testing.T) {
 			Code:    "520489",
 		},
 	} {
-		tc := tc
 		t.Run(strconv.FormatUint(tc.Counter, 10), func(t *testing.T) {
 			t.Parallel()
 
@@ -127,7 +126,6 @@ func TestFormatNumToString(t *testing.T) {
 			Str: "000123",
 		},
 	} {
-		tc := tc
 		t.Run(strconv.FormatUint(tc.Num, 10)+" len "+strconv.Itoa(tc.Len), func(t *testing.T) {
 			t.Parallel()
 
@@ -150,7 +148,6 @@ func TestGenerateRandomCode(t *testing.T) {
 			Len: 8,
 		},
 	} {
-		tc := tc
 		t.Run("len "+strconv.Itoa(tc.Len), func(t *testing.T) {
 			t.Parallel()
 
@@ -334,7 +331,6 @@ func TestTOTP(t *testing.T) {
 			Code:   "47863826",
 		},
 	} {
-		tc := tc
 		t.Run(strconv.FormatUint(tc.T, 10)+" "+tc.Alg.String(), func(t *testing.T) {
 			t.Parallel()
 
@@ -391,7 +387,6 @@ func TestTOTPConfig_String(t *testing.T) {
 			URI:    "otpauth://totp/governor%20auth:kevin?algorithm=SHA256&digits=8&issuer=governor+auth&period=15&secret=NRXXEZLNEBUXA43VNU",
 		},
 	} {
-		tc := tc
 		t.Run(tc.URI, func(t *testing.T) {
 			t.Parallel()
 

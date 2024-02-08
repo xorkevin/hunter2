@@ -37,7 +37,6 @@ func TestHasher(t *testing.T) {
 			Hash: keyedHasher,
 		},
 	} {
-		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			t.Parallel()
 
