@@ -104,6 +104,8 @@ func (a *Poly1305Auth) Write(src []byte) (int, error) {
 	return n, nil
 }
 
+var zeroBuf [16]byte
+
 // Close writes the number of bytes of the input to the hash and should be
 // called after writing all the input. This prevents length extension attacks.
 func (a *Poly1305Auth) Close() error {
@@ -114,9 +116,8 @@ func (a *Poly1305Auth) Close() error {
 	// taken from golang.org/x/crypto/chacha20poly1305
 	if n := a.count % 16; n != 0 {
 		// pad length to 16 bytes
-		var buf [16]byte
 		l := 16 - n
-		if k, err := a.mac.Write(buf[:l]); err != nil {
+		if k, err := a.mac.Write(zeroBuf[:l]); err != nil {
 			// should not happen as specified by [hash.Hash]
 			return kerrors.WithMsg(err, "Failed writing to MAC")
 		} else if k != int(l) {
