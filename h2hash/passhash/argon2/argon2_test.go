@@ -61,7 +61,7 @@ func BenchmarkHash46(b *testing.B) {
 		Parallel: 1,
 	})
 
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		hasher.exec([]byte("password"), []byte("testsalt"), 32, Config{
 			Version:  argon2.Version,
 			Time:     1,
@@ -79,7 +79,7 @@ func BenchmarkHash19(b *testing.B) {
 		Parallel: 1,
 	})
 
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		hasher.exec([]byte("password"), []byte("testsalt"), 32, Config{
 			Version:  argon2.Version,
 			Time:     2,
@@ -97,7 +97,7 @@ func BenchmarkHash12(b *testing.B) {
 		Parallel: 1,
 	})
 
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		hasher.exec([]byte("password"), []byte("testsalt"), 32, Config{
 			Version:  argon2.Version,
 			Time:     3,
@@ -115,7 +115,7 @@ func BenchmarkHash9(b *testing.B) {
 		Parallel: 1,
 	})
 
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		hasher.exec([]byte("password"), []byte("testsalt"), 32, Config{
 			Version:  argon2.Version,
 			Time:     4,
@@ -133,7 +133,7 @@ func BenchmarkHash7(b *testing.B) {
 		Parallel: 1,
 	})
 
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		hasher.exec([]byte("password"), []byte("testsalt"), 32, Config{
 			Version:  argon2.Version,
 			Time:     5,
